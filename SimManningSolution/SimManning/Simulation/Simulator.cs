@@ -104,8 +104,8 @@ namespace SimManning.Simulation
 				if (task.DateOffset.Unit == TimeUnit.Undefined)
 					switch (task.TaskTypeSubCode1)	//Automatic offset
 					{
-						case (int)SimulationTask.StandardType.ExternalCondition:
-						case (int)SimulationTask.StandardType.CriticalEvents:
+						case (int)StandardTaskType.ExternalCondition:
+						case (int)StandardTaskType.CriticalEvents:
 							nextEventTime = this.simulationTime + (task.StartDate.NextValue(this.rand) / 2);	//Add half of the frequency for the first occurence of critical events and external conditions?
 							break;
 						default:
@@ -113,7 +113,7 @@ namespace SimManning.Simulation
 							break;
 					}
 				else nextEventTime = this.simulationTime;	//Explicit offset will be done in EnqueueTaskArrival
-				EnqueueTaskArrival(this.simulationDataSet.TaskDictionaryExpanded.CreateTask(task, SimulationTask.LinkingType.Linked), nextEventTime, original: true);
+				EnqueueTaskArrival(this.simulationDataSet.TaskDictionaryExpanded.CreateTask(task, TaskLinkingType.Linked), nextEventTime, original: true);
 			}
 		}
 
@@ -141,13 +141,13 @@ namespace SimManning.Simulation
 				if (phase.Duration.XValue.Positive)
 				{//Duration of the phase, represented by an obligatory task of the same length.
 					var durationTask = this.simulationDataSet.TaskDictionaryExpanded.CreateTask(-phase.Id);
-					durationTask.TaskType = (int)SimulationTask.StandardType.InternalWait;
+					durationTask.TaskType = (int)StandardTaskType.InternalWait;
 					durationTask.Name = String.Format(CultureInfo.InvariantCulture, "!Duration task for phase {0} ({1})", phase.Id, phase.Name);
-					durationTask.TaskInterruptionPolicy = SimulationTask.TaskInterruptionPolicies.DropWithError;
-					durationTask.PhaseInterruptionPolicy = SimulationTask.PhaseInterruptionPolicies.Obligatory;
-					durationTask.ScenarioInterruptionPolicy = SimulationTask.ScenarioInterruptionPolicies.DropWithError;
+					durationTask.TaskInterruptionPolicy = TaskInterruptionPolicies.DropWithError;
+					durationTask.PhaseInterruptionPolicy = PhaseInterruptionPolicies.Obligatory;
+					durationTask.ScenarioInterruptionPolicy = ScenarioInterruptionPolicies.DropWithError;
 					this.nbObligatoryTasksActive++;
-					durationTask.RelativeDate = SimulationTask.RelativeDateType.RelativeStartFromStartOfPhase;
+					durationTask.RelativeDate = RelativeDateType.RelativeStartFromStartOfPhase;
 					durationTask.StartDate = TimeDistribution.Zero;
 					durationTask.DateOffset = TimeDistribution.Zero;
 					durationTask.Duration = phase.Duration;
@@ -161,7 +161,7 @@ namespace SimManning.Simulation
 				}
 				foreach (var task in this.simulationDataSet.TaskDictionaryExpanded.Values.AsParallel().Where(t => t.IsPhaseDependent && (!t.AutoExpandToAllCrewmen) &&
 					t.Enabled && t.PhaseTypes.Any(pt => phase.PhaseType.IsSubCodeOf(pt))))
-					EnqueueTaskArrival(this.simulationDataSet.TaskDictionaryExpanded.CreateTask(task, SimulationTask.LinkingType.Linked), this.simulationTime, original: true);	//Enqueue tasks for phases of this type
+					EnqueueTaskArrival(this.simulationDataSet.TaskDictionaryExpanded.CreateTask(task, TaskLinkingType.Linked), this.simulationTime, original: true);	//Enqueue tasks for phases of this type
 				foreach (var task in phase.Tasks.Values.Where(t => t.IsPhaseDependent && (!t.AutoExpandToAllCrewmen) && t.Enabled))
 					EnqueueTaskArrival(task, this.simulationTime, original: true);	//Enqueue tasks for this specific phase
 				timeLimit = this.simulationTime;
@@ -178,7 +178,7 @@ namespace SimManning.Simulation
 			}
 			Debug.WriteLine("{0}==== {1} End of scenario ({2} events) ===={0}", Environment.NewLine, this.simulationTime, this.nbEventInsertions);
 			DoPhaseTransition(previousPhase, null);	//Ends the simulation
-			Debug.Assert(!this.simulationDataSet.Crew.Values.Any(cm => cm.TasksAssigned.Count > 0), "No crewmember should have remaining tasks assigned at the end of a scenario!");
+			Debug.Assert(!this.simulationDataSet.Crew.Values.Any(cm => cm.TasksAssigned.Count > 0), "No crewman should have remaining tasks assigned at the end of a scenario!");
 			this.dispatcher = null;
 			return true;
 		}
@@ -194,11 +194,11 @@ namespace SimManning.Simulation
 				task.ProcessUntilNow(time, previousPhase);
 			switch (task.PhaseInterruptionPolicy)
 			{
-				case SimulationTask.PhaseInterruptionPolicies.ResumeOrDropWithoutError:
+				case PhaseInterruptionPolicies.ResumeOrDropWithoutError:
 					error = false;
-					goto case SimulationTask.PhaseInterruptionPolicies.ResumeOrDropWithError;	//C# style switch case fall-through
-				case SimulationTask.PhaseInterruptionPolicies.ResumeOrDropWithError:
-					if (phase == null) error = task.ScenarioInterruptionPolicy == SimulationTask.ScenarioInterruptionPolicies.DropWithError;
+					goto case PhaseInterruptionPolicies.ResumeOrDropWithError;	//C# style switch case fall-through
+				case PhaseInterruptionPolicies.ResumeOrDropWithError:
+					if (phase == null) error = task.ScenarioInterruptionPolicy == ScenarioInterruptionPolicies.DropWithError;
 					else
 					{//Task always continues except at the end of the scenario
 						killed = false;
@@ -211,21 +211,21 @@ namespace SimManning.Simulation
 						}
 					}
 					break;
-				case SimulationTask.PhaseInterruptionPolicies.ContinueOrDropWithoutError:
+				case PhaseInterruptionPolicies.ContinueOrDropWithoutError:
 					error = false;
-					goto case SimulationTask.PhaseInterruptionPolicies.ContinueOrDropWithError;
-				case SimulationTask.PhaseInterruptionPolicies.ContinueOrDropWithError:
+					goto case PhaseInterruptionPolicies.ContinueOrDropWithError;
+				case PhaseInterruptionPolicies.ContinueOrDropWithError:
 					//case Task.PhaseInterruptionPolicies.DoNotInterrupt:
-					if (phase == null) error = (task.ScenarioInterruptionPolicy == SimulationTask.ScenarioInterruptionPolicies.DropWithError);
+					if (phase == null) error = (task.ScenarioInterruptionPolicy == ScenarioInterruptionPolicies.DropWithError);
 					else if (task.PhaseTypes.Any(pt => phase.PhaseType.IsSubCodeOf(pt)))
 						killed = false;	//Task can continue
 					break;
-				case SimulationTask.PhaseInterruptionPolicies.DropWithoutError:
-				case SimulationTask.PhaseInterruptionPolicies.WholePhase:
+				case PhaseInterruptionPolicies.DropWithoutError:
+				case PhaseInterruptionPolicies.WholePhase:
 					error = false;
 					break;
-				case SimulationTask.PhaseInterruptionPolicies.Obligatory:
-				case SimulationTask.PhaseInterruptionPolicies.DropWithError:
+				case PhaseInterruptionPolicies.Obligatory:
+				case PhaseInterruptionPolicies.DropWithError:
 				default:
 					break;
 			}
@@ -252,10 +252,10 @@ namespace SimManning.Simulation
 					if (phase != null)
 						switch (task.RelativeDate)
 						{
-							case SimulationTask.RelativeDateType.Frequency:
+							case RelativeDateType.Frequency:
 								killed = false;	//Task can continue
 								break;
-							case SimulationTask.RelativeDateType.RelativeStartFromPreviousStart:
+							case RelativeDateType.RelativeStartFromPreviousStart:
 								//Temporarily keep tasks that are relative to the previous occurence if they appear in the next phase
 								if (task.PhaseTypes.Any(pt => phase.PhaseType.IsSubCodeOf(pt)) &&
 									(!eventsToKeep.Any(e => e.Task.Id == task.Id)))	//Keep only one instance	//TODO: Debug
@@ -263,7 +263,7 @@ namespace SimManning.Simulation
 								break;
 						}
 				}
-				else if (task.RelativeDate == SimulationTask.RelativeDateType.TriggeredByAnEvent)
+				else if (task.RelativeDate == RelativeDateType.TriggeredByAnEvent)
 				{
 					killed = false;	//Slaves will be killed indirectly
 					myEvent.Task.ProcessUntilNow(this.simulationTime, previousPhase);
@@ -311,7 +311,7 @@ namespace SimManning.Simulation
 				}
 				else
 				{
-					if (myEvent.Task.PhaseInterruptionPolicy == SimulationTask.PhaseInterruptionPolicies.Obligatory)
+					if (myEvent.Task.PhaseInterruptionPolicy == PhaseInterruptionPolicies.Obligatory)
 						this.nbObligatoryTasksActive++;
 					eventsToKeep.Add(myEvent);
 					if (myEvent.subtype != SimulationTaskEvent.SubtypeType.TaskPlanned)
@@ -426,11 +426,11 @@ namespace SimManning.Simulation
 			{//Phase-independent task
 				if (currentTask.PhaseTypes.Any(pt => this.simulationPhase.PhaseType.IsSubCodeOf(pt)))
 				{
-					if (currentTask.RelativeDate == SimulationTask.RelativeDateType.Frequency)
+					if (currentTask.RelativeDate == RelativeDateType.Frequency)
 					{
-						var nextTask = this.simulationDataSet.TaskDictionaryExpanded.CreateTask(currentTask, SimulationTask.LinkingType.Linked);
+						var nextTask = this.simulationDataSet.TaskDictionaryExpanded.CreateTask(currentTask, TaskLinkingType.Linked);
 						var nextTime = originalEventTime + nextTask.StartDate.NextValue(this.rand);
-						if ((currentTask.RelativeTime != SimulationTask.RelativeTimeType.AbsoluteStartTime) &&	//No need to process AbsoluteStartTime, as it is always planned properly
+						if ((currentTask.RelativeTime != RelativeTimeType.AbsoluteStartTime) &&	//No need to process AbsoluteStartTime, as it is always planned properly
 							(currentTask.DailyHourStart != currentTask.DailyHourEnd))
 						{//There is a time window
 							var offset = SimulationTime.DayTimeOffset(nextTask.DailyHourStart + nextTask.DateOffset.XValue, originalEventTime);	//DayTimeOffset is always positive
@@ -452,7 +452,7 @@ namespace SimManning.Simulation
 				}
 				else
 				{//This phase-independent task is not allowed in the current phase
-					if ((currentTask.RelativeDate == SimulationTask.RelativeDateType.Frequency) && (currentTask.DateOffset.Unit != TimeUnit.Undefined))
+					if ((currentTask.RelativeDate == RelativeDateType.Frequency) && (currentTask.DateOffset.Unit != TimeUnit.Undefined))
 					{//Specific offset for the frequency: discard the current event and generate the next one.
 						#if (DEBUG)
 						simulationEvent.subtype = SimulationTaskEvent.SubtypeType.TaskCancelled;
@@ -474,7 +474,7 @@ namespace SimManning.Simulation
 			}
 			if (currentTask.SlaveTasks.Count > 0)
 				foreach (var slaveTask in currentTask.SlaveTasks.Values.Where(t => t.Enabled))	//Start slaves
-					EnqueueTaskArrival(this.simulationDataSet.TaskDictionaryExpanded.CreateTask(slaveTask, SimulationTask.LinkingType.Linked), simulationEvent.EventTime, original: true);
+					EnqueueTaskArrival(this.simulationDataSet.TaskDictionaryExpanded.CreateTask(slaveTask, TaskLinkingType.Linked), simulationEvent.EventTime, original: true);
 			this.taskIdsActive.Add(currentTask.Id);	//Do after frequency case
 			ResumeTask(simulationEvent);
 		}
@@ -492,7 +492,7 @@ namespace SimManning.Simulation
 			currentTask.ProcessUntilNow(originalEventTime, this.simulationPhase);
 			Debug.WriteLine("☑\t{0}\t(remaining: {1})", simulationEvent, currentTask.RemainingDuration);
 			this.taskIdsActive.Remove(currentTask.Id);
-			if (currentTask.PhaseInterruptionPolicy == SimulationTask.PhaseInterruptionPolicies.Obligatory)
+			if (currentTask.PhaseInterruptionPolicy == PhaseInterruptionPolicies.Obligatory)
 				this.nbObligatoryTasksActive--;
 			if (currentTask.SlaveTasks.Count > 0)
 				StopSlaves(simulationEvent);
@@ -521,20 +521,20 @@ namespace SimManning.Simulation
 				if (currentTask.RemainingDuration.Positive)
 					switch (currentTask.TaskInterruptionPolicy)
 					{
-						case SimulationTask.TaskInterruptionPolicies.DropWithError:
-						case SimulationTask.TaskInterruptionPolicies.ContinueOrDropWithError:
+						case TaskInterruptionPolicies.DropWithError:
+						case TaskInterruptionPolicies.ContinueOrDropWithError:
 							if (this.OnTaskError != null) this.OnTaskError(this.simulationPhase, currentTask);
 							break;
-						case SimulationTask.TaskInterruptionPolicies.ContinueOrResumeWithError:
-						case SimulationTask.TaskInterruptionPolicies.ContinueOrResumeWithoutError:
+						case TaskInterruptionPolicies.ContinueOrResumeWithError:
+						case TaskInterruptionPolicies.ContinueOrResumeWithoutError:
 							Debug.Assert(false, "A task must not have a remaining duration when it ends!");
 							break;
 					}
 				switch (currentTask.RelativeDate)
 				{//Next instance of the same task
-					case SimulationTask.RelativeDateType.AbsoluteStartMonthDay:
-					case SimulationTask.RelativeDateType.AbsoluteStartWeekDay:
-					case SimulationTask.RelativeDateType.RelativeStartFromPreviousStart:
+					case RelativeDateType.AbsoluteStartMonthDay:
+					case RelativeDateType.AbsoluteStartWeekDay:
+					case RelativeDateType.RelativeStartFromPreviousStart:
 						EnqueueTaskArrival(currentTask, originalEventTime, original: false);
 						break;
 				}
@@ -587,7 +587,7 @@ namespace SimManning.Simulation
 					this.taskIdsActive.Add(currentTask.Id);
 					if (currentTask.SlaveTasks.Count > 0)
 						foreach (var slaveTask in currentTask.SlaveTasks.Values.Where(t => t.Enabled))	//Start slaves
-							EnqueueTaskArrival(this.simulationDataSet.TaskDictionaryExpanded.CreateTask(slaveTask, SimulationTask.LinkingType.Linked), simulationEvent.EventTime, original: true);
+							EnqueueTaskArrival(this.simulationDataSet.TaskDictionaryExpanded.CreateTask(slaveTask, TaskLinkingType.Linked), simulationEvent.EventTime, original: true);
 					goto case SimulationTaskEvent.SubtypeType.TaskResumes;
 				case SimulationTaskEvent.SubtypeType.TaskResumes:
 				case SimulationTaskEvent.SubtypeType.TaskWorkContinues:
@@ -603,7 +603,7 @@ namespace SimManning.Simulation
 					Debug.WriteLine("✘\t Unknown event type: {0}\t(remaining: {1})", simulationEvent, currentTask.RemainingDuration);
 					goto case SimulationTaskEvent.SubtypeType.TaskCancelled;
 				case SimulationTaskEvent.SubtypeType.TaskCancelled:
-					if (currentTask.PhaseInterruptionPolicy == SimulationTask.PhaseInterruptionPolicies.Obligatory)
+					if (currentTask.PhaseInterruptionPolicy == PhaseInterruptionPolicies.Obligatory)
 						this.nbObligatoryTasksActive--;
 					break;
 			}
@@ -672,19 +672,19 @@ namespace SimManning.Simulation
 		FindStartTime:
 			switch (task.RelativeTime)
 			{
-				case SimulationTask.RelativeTimeType.AbsoluteStartTime:
+				case RelativeTimeType.AbsoluteStartTime:
 					{
 						nextEventTime = nextEventTime.NextDayTime(task.DailyHourStart);
 						break;
 					}
-				case SimulationTask.RelativeTimeType.AbsoluteStopTime:
+				case RelativeTimeType.AbsoluteStopTime:
 					{
 						var workEnd = nextEventTime.NextDayTime(task.DailyHourEnd);
 						if (workEnd <= eventTime) workEnd = nextEventTime.NextDayTime(task.DailyHourEnd, allowCurrentTime: false);
 						nextEventTime = workEnd - task.Duration.XValue;	//TODO: Plan additional time?
 						break;
 					}
-				case SimulationTask.RelativeTimeType.TimeWindow:
+				case RelativeTimeType.TimeWindow:
 				default:
 					{
 						var workStart = nextEventTime.NextDayTime(task.DailyHourStart);
@@ -718,17 +718,17 @@ namespace SimManning.Simulation
 			SimulationTime nextEventTime;
 			switch (task.RelativeDate)
 			{
-				case SimulationTask.RelativeDateType.AbsoluteStartMonthDay:
+				case RelativeDateType.AbsoluteStartMonthDay:
 					nextEventTime = eventTime.NextMonthTime(task.StartDate.XValue) + task.DateOffset.XValue;
 					break;
-				case SimulationTask.RelativeDateType.AbsoluteStartWeekDay:
+				case RelativeDateType.AbsoluteStartWeekDay:
 					nextEventTime = eventTime.NextWeekTime(task.StartDate.XValue) + task.DateOffset.XValue;
 					break;
-				case SimulationTask.RelativeDateType.Frequency:
+				case RelativeDateType.Frequency:
 					Debug.Assert(!this.eventQueue.Any(ste => (ste.Task.Id == task.Id) && (ste.subtype == SimulationTaskEvent.SubtypeType.TaskPlanned)), "A frequency task must not be planned from a previous phase?");
 					nextEventTime = original ? eventTime + task.DateOffset.XValue : eventTime;
 					break;
-				case SimulationTask.RelativeDateType.RelativeStartFromPreviousStart:
+				case RelativeDateType.RelativeStartFromPreviousStart:
 					if (task.SimulationTimeArrives.Negative)
 					{//TODO: kill possible duplicates if duplicates are forbidden in the new phase
 						var previousTaskEvent = NextEventOrDefault(task.Id);
@@ -763,16 +763,16 @@ namespace SimManning.Simulation
 					else if (taskFromPreviousPhase) nextEventTime = this.simulationTime;
 					else nextEventTime = task.SimulationTimeArrives + task.StartDate.XValue;
 					break;
-				case SimulationTask.RelativeDateType.RelativeStartFromStartOfPhase:
+				case RelativeDateType.RelativeStartFromStartOfPhase:
 					nextEventTime = this.simulationPhase.simulationTimeBegin + task.StartDate.XValue;
 					break;
-				case SimulationTask.RelativeDateType.RelativeStartFromEndOfPhase:
+				case RelativeDateType.RelativeStartFromEndOfPhase:
 					nextEventTime = this.simulationPhase.simulationTimeBegin + this.simulationPhase.Duration.XValue - task.StartDate.XValue;	//TODO: Plan additional time?
 					break;
-				case SimulationTask.RelativeDateType.RelativeStopFromEndOfPhase:
+				case RelativeDateType.RelativeStopFromEndOfPhase:
 					nextEventTime = this.simulationPhase.simulationTimeBegin;	//TODO: Report error properly when task is not performed on time
 					break;
-				case SimulationTask.RelativeDateType.TriggeredByAnEvent:
+				case RelativeDateType.TriggeredByAnEvent:
 				default:
 					nextEventTime = eventTime + task.DateOffset.XValue;
 					break;
@@ -781,14 +781,14 @@ namespace SimManning.Simulation
 
 			nextEventTime = FindStartTime(task, eventTime, nextEventTime);
 
-			if (task.PhaseInterruptionPolicy == SimulationTask.PhaseInterruptionPolicies.Obligatory) this.nbObligatoryTasksActive++;
+			if (task.PhaseInterruptionPolicy == PhaseInterruptionPolicies.Obligatory) this.nbObligatoryTasksActive++;
 			if (taskFromPreviousPhase)	//A task was already running from a previous phase
 				AddEvent(new SimulationTaskEvent(task, nextEventTime, SimulationTaskEvent.SubtypeType.TaskResumes));
 			else
 			{
 				var simulationEvent = new SimulationTaskEvent(task, nextEventTime, SimulationTaskEvent.SubtypeType.TaskPlanned);
 				Debug.WriteLine("{0}\t{1}\t(duration: {2})",
-					simulationEvent.Task.PhaseInterruptionPolicy == SimulationTask.PhaseInterruptionPolicies.Obligatory ? '❍' : '☐',
+					simulationEvent.Task.PhaseInterruptionPolicy == PhaseInterruptionPolicies.Obligatory ? '❍' : '☐',
 					simulationEvent, task.Duration.XValue);
 				AddEvent(simulationEvent);
 			}
@@ -799,8 +799,8 @@ namespace SimManning.Simulation
 			if (!SimManningCommon.InternalEngineAllowed) throw new NotImplementedException(SimManningCommon.ErrorMessageInternalEngineNotAllowed);
 			var task = simulationEvent.Task;
 			task.ProcessUntilNow(this.simulationTime, this.simulationPhase);
-			if ((task.TaskInterruptionPolicy == SimulationTask.TaskInterruptionPolicies.DropWithError) || (task.TaskInterruptionPolicy == SimulationTask.TaskInterruptionPolicies.DropWithoutError) ||
-				((!tryAssignmentAgainNow) && ((task.TaskInterruptionPolicy == SimulationTask.TaskInterruptionPolicies.ContinueOrDropWithError) || (task.TaskInterruptionPolicy == SimulationTask.TaskInterruptionPolicies.ContinueOrDropWithoutError))))
+			if ((task.TaskInterruptionPolicy == TaskInterruptionPolicies.DropWithError) || (task.TaskInterruptionPolicy == TaskInterruptionPolicies.DropWithoutError) ||
+				((!tryAssignmentAgainNow) && ((task.TaskInterruptionPolicy == TaskInterruptionPolicies.ContinueOrDropWithError) || (task.TaskInterruptionPolicy == TaskInterruptionPolicies.ContinueOrDropWithoutError))))
 				simulationEvent.subtype = SimulationTaskEvent.SubtypeType.TaskKilled;	//The task cannot be continued
 			else
 			{//Continue or resume
@@ -809,7 +809,7 @@ namespace SimManning.Simulation
 				simulationEvent.EventTime = this.simulationTime;
 				#endif
 				Debug.WriteLine("◭\t{0}\t(remaining: {1})", simulationEvent, task.RemainingDuration);
-				if ((task.TaskInterruptionPolicy == SimulationTask.TaskInterruptionPolicies.ContinueOrResumeWithError) && (this.OnTaskError != null))
+				if ((task.TaskInterruptionPolicy == TaskInterruptionPolicies.ContinueOrResumeWithError) && (this.OnTaskError != null))
 					this.OnTaskError(this.simulationPhase, task);
 				simulationEvent.subtype = SimulationTaskEvent.SubtypeType.TaskWorkContinues;
 				simulationEvent.EventTime = task.NextPossibleResume(this.simulationTime);
@@ -860,7 +860,7 @@ namespace SimManning.Simulation
 		{
 			if (!SimManningCommon.InternalEngineAllowed) throw new NotImplementedException(SimManningCommon.ErrorMessageInternalEngineNotAllowed);
 			var task = simulationEvent.Task;
-			Debug.Assert((task.TaskType == (int)SimulationTask.StandardType.InternalWait) || task.Allowed(this.simulationPhase), "A task must not be resumed in phases where it is not allowed!");
+			Debug.Assert((task.TaskType == (int)StandardTaskType.InternalWait) || task.Allowed(this.simulationPhase), "A task must not be resumed in phases where it is not allowed!");
 			task.SleepUntilNow(simulationEvent.EventTime);
 			var taskAssignmentTimeExpire = this.dispatcher.TaskAssignment(simulationEvent.EventTime, this.simulationPhase, task, this.InterruptTasks);
 			if (taskAssignmentTimeExpire.Negative) InterruptTask(simulationEvent, tryAssignmentAgainNow: false, recursive: true); //Task was not assigned
@@ -900,13 +900,13 @@ namespace SimManning.Simulation
 				}
 				else
 				{//The task does not have time to complete in one row	//TODO: Refactor and add rationale
-					if ((task.PhaseInterruptionPolicy == SimulationTask.PhaseInterruptionPolicies.DoNotInterrupt) &&
+					if ((task.PhaseInterruptionPolicy == PhaseInterruptionPolicies.DoNotInterrupt) &&
 						(simulationEvent.subtype == SimulationTaskEvent.SubtypeType.TaskAdjourned))
 					{
 						simulationEvent.subtype = SimulationTaskEvent.SubtypeType.TaskEnds;	//This is in order not to have remaining hours if the task was started somewhere in the middle of the time window
 						switch (task.RelativeDate)
 						{
-							case SimulationTask.RelativeDateType.RelativeStartFromPreviousStart:
+							case RelativeDateType.RelativeStartFromPreviousStart:
 								var timeOffset = task.SimulationTimeArrives.DayTime - task.DailyHourStart;
 								if (timeOffset.Positive)	//Fictive negative offset, so that later relative occurrences will start at the expected time
 									task.SimulationTimeArrives -= timeOffset;

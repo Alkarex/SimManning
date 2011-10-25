@@ -1,0 +1,477 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="SimManning.Crew">
+    <Position X="7.75" Y="0.5" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>AQAAACACAAAgAAgAIAAIAAYAAAAEAAAYAAAAAAAAAQA=</HashCode>
+      <FileName>Crew.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SimManning.Crewman">
+    <Position X="9.75" Y="0.5" Width="2.25" />
+    <Members>
+      <Field Name="crewmanType" Hidden="true" />
+      <Field Name="cumulatedWorkTime" Hidden="true" />
+      <Field Name="currentLoad" Hidden="true" />
+      <Field Name="description" Hidden="true" />
+      <Field Name="id" Hidden="true" />
+      <Field Name="lastRefreshTime" Hidden="true" />
+      <Field Name="name" Hidden="true" />
+      <Field Name="qualifications" Hidden="true" />
+      <Field Name="tasksAssigned" Hidden="true" />
+    </Members>
+    <TypeIdentifier>
+      <HashCode>gEACAEAAAADgAAREIAgQEAQAABQEAKAcAAAAAgBABwA=</HashCode>
+      <FileName>Crewman.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="SimManning.DomainCreator">
+    <Position X="16.25" Y="0.5" Width="4" />
+    <TypeIdentifier>
+      <HashCode>AAEgAAAAAIAAIAACAAAAAAAAAAAAEAAAAAAAAAEEAAA=</HashCode>
+      <FileName>Domain\DomainCreator.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SimManning.Phase">
+    <Position X="14.25" Y="0.5" Width="1.75" />
+    <Members>
+      <Field Name="description" Hidden="true" />
+      <Field Name="id" Hidden="true" />
+      <Field Name="name" Hidden="true" />
+      <Field Name="phaseType" Hidden="true" />
+      <Field Name="refPhase" Hidden="true" />
+      <Property Name="RefPhase" Hidden="true" />
+      <Field Name="tag" Hidden="true" />
+      <Field Name="tasks" Hidden="true" />
+    </Members>
+    <TypeIdentifier>
+      <HashCode>BQCCAGAAgAAiAQAEIAAAAAQAIAAEAAgYAAAIAAAAIwA=</HashCode>
+      <FileName>Phase.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SimManning.Scenario">
+    <Position X="12.25" Y="0.5" Width="1.75" />
+    <Members>
+      <Field Name="description" Hidden="true" />
+      <Field Name="loadPhase" Hidden="true" />
+      <Field Name="name" Hidden="true" />
+      <Field Name="phases" Hidden="true" />
+      <Field Name="tag" Hidden="true" />
+    </Members>
+    <TypeIdentifier>
+      <HashCode>AQAABCAAgAAiAAAAIAAAAAQAAGAEAQA4gAAEAAAABQA=</HashCode>
+      <FileName>Scenario.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SimManning.SimulationDataSet">
+    <Position X="20.5" Y="0.5" Width="2.5" />
+    <Members>
+      <Field Name="assertions" Hidden="true" />
+      <Field Name="crew" Hidden="true" />
+      <Field Name="scenario" Hidden="true" />
+      <Field Name="taskDictionary" Hidden="true" />
+      <Field Name="taskDictionaryExpanded" Hidden="true" />
+      <Field Name="workplace" Hidden="true" />
+    </Members>
+    <TypeIdentifier>
+      <HashCode>AQCAAAAAAAAICggEAAoYAAAAhAAYAASIEAAAAiAAAAI=</HashCode>
+      <FileName>SimulationDataSet.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SimManning.SimulationTask">
+    <Position X="5" Y="0.5" Width="2.5" />
+    <Members>
+      <Field Name="autoExpandToAllCrewmen" Hidden="true" />
+      <Field Name="crewmanTypes" Hidden="true" />
+      <Field Name="description" Hidden="true" />
+      <Field Name="enabled" Hidden="true" />
+      <Field Name="id" Hidden="true" />
+      <Field Name="interruptionErrorPolicy" Hidden="true" />
+      <Field Name="isPhaseDependent" Hidden="true" />
+      <Field Name="isWork" Hidden="true" />
+      <Field Name="lastProcessTime" Hidden="true" />
+      <Field Name="masterTasks" Hidden="true" />
+      <Field Name="name" Hidden="true" />
+      <Field Name="noDuplicate" Hidden="true" />
+      <Field Name="numberOfCrewmenNeeded" Hidden="true" />
+      <Field Name="onHolidays" Hidden="true" />
+      <Field Name="parallelTasks" Hidden="true" />
+      <Field Name="phaseInterruptionPolicy" Hidden="true" />
+      <Field Name="phaseTypes" Hidden="true" />
+      <Field Name="priority" Hidden="true" />
+      <Field Name="refTask" Hidden="true" />
+      <Field Name="relativeDate" Hidden="true" />
+      <Field Name="relativeTime" Hidden="true" />
+      <Field Name="remainingDuration" Hidden="true" />
+      <Field Name="scenarioInterruptionPolicy" Hidden="true" />
+      <Field Name="simulationTimeArrives" Hidden="true" />
+      <Field Name="slaveTasks" Hidden="true" />
+      <Field Name="taskInterruptionPolicy" Hidden="true" />
+      <Field Name="taskType" Hidden="true" />
+      <Field Name="taskTypeSubCode1" Hidden="true" />
+    </Members>
+    <Compartments>
+      <Compartment Name="Private" Collapsed="true" />
+      <Compartment Name="Nested Types" Collapsed="false" />
+    </Compartments>
+    <NestedTypes>
+      <Enum Name="SimManning.SimulationTask.RelativeDateType">
+        <TypeIdentifier>
+          <NewMemberFileName>SimulationTask.Enums.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Enum Name="SimManning.SimulationTask.RelativeTimeType">
+        <TypeIdentifier>
+          <NewMemberFileName>SimulationTask.Enums.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Enum Name="SimManning.SimulationTask.TaskInterruptionPolicies" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>SimulationTask.Enums.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Enum Name="SimManning.SimulationTask.PhaseInterruptionPolicies">
+        <TypeIdentifier>
+          <NewMemberFileName>SimulationTask.Enums.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Enum Name="SimManning.SimulationTask.ScenarioInterruptionPolicies">
+        <TypeIdentifier>
+          <NewMemberFileName>SimulationTask.Enums.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Enum Name="SimManning.SimulationTask.InterruptionTypes">
+        <TypeIdentifier>
+          <NewMemberFileName>SimulationTask.Enums.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Enum Name="SimManning.SimulationTask.StandardType">
+        <TypeIdentifier>
+          <NewMemberFileName>SimulationTask.Enums.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Enum Name="SimManning.SimulationTask.LinkingType" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>SimulationTask.Enums.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+    </NestedTypes>
+    <TypeIdentifier>
+      <HashCode>A0CLQAhIDlSrZYqEMAirKEwAMS5MBQA8glwINEFRmxg=</HashCode>
+      <FileName>SimulationTask.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SimManning.TaskDictionary">
+    <Position X="2.25" Y="0.5" Width="2.5" />
+    <Members>
+      <Method Name="AddTaskRelations" Hidden="true" />
+      <Method Name="LoadTaskRefFromXml" Hidden="true" />
+      <Field Name="tag" Hidden="true" />
+    </Members>
+    <NestedTypes>
+      <Struct Name="SimManning.TaskDictionary.TaskRelationTemp" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>TaskDictionary.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Struct>
+    </NestedTypes>
+    <TypeIdentifier>
+      <HashCode>AQAAADAAAACgAAAgAABAAAAAAABAAABYAAAAAIAAQQA=</HashCode>
+      <FileName>TaskDictionary.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SimManning.Workplace">
+    <Position X="0.5" Y="0.5" Width="1.5" />
+    <Members>
+      <Field Name="description" Hidden="true" />
+      <Field Name="name" Hidden="true" />
+      <Field Name="tag" Hidden="true" />
+    </Members>
+    <TypeIdentifier>
+      <HashCode>AAAAACAAAAAgAAAAIAAAAAQAAAAEAAAYAAAAAAAAAQA=</HashCode>
+      <FileName>Workplace.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SimManning.Domain.Basic.BasicCreator">
+    <Position X="16.75" Y="6" Width="3" />
+    <Members>
+      <Method Name="BasicCreator" Hidden="true" />
+    </Members>
+    <TypeIdentifier>
+      <HashCode>AAEgAAAAAIAAAAACAAAAAAAAAAAAAAAAAAAAAAEEAAA=</HashCode>
+      <FileName>Domain\Basic\BasicCreator.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SimManning.Domain.Basic.BasicCrew">
+    <Position X="8" Y="6" Width="1.5" />
+    <InheritanceLine Type="SimManning.Crew" FixedToPoint="true">
+      <Path>
+        <Point X="8.625" Y="4.944" />
+        <Point X="8.625" Y="6" />
+      </Path>
+    </InheritanceLine>
+    <TypeIdentifier>
+      <HashCode>AAAAAAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Domain\Basic\BasicCrew.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SimManning.Domain.Basic.BasicCrewman">
+    <Position X="10.25" Y="6" Width="1.5" />
+    <InheritanceLine Type="SimManning.Crewman" FixedToPoint="true">
+      <Path>
+        <Point X="10.875" Y="5.517" />
+        <Point X="10.875" Y="6" />
+      </Path>
+    </InheritanceLine>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Domain\Basic\BasicCrewman.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SimManning.Domain.Basic.BasicDispatcher">
+    <Position X="23.5" Y="6" Width="1.5" />
+    <NestedTypes>
+      <Enum Name="SimManning.Domain.Basic.BasicDispatcher.AssignmentCoefficiant" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>Domain\Basic\BasicDispatcher.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Struct Name="SimManning.Domain.Basic.BasicDispatcher.ScoreEntry" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>Domain\Basic\BasicDispatcher.cs</NewMemberFileName>
+        </TypeIdentifier>
+        <Lollipop Position="0.2" />
+      </Struct>
+    </NestedTypes>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAAABAA=</HashCode>
+      <FileName>Domain\Basic\BasicDispatcher.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SimManning.Domain.Basic.BasicPhase">
+    <Position X="14.25" Y="6" Width="2" />
+    <InheritanceLine Type="SimManning.Phase" FixedToPoint="true">
+      <Path>
+        <Point X="15.125" Y="5.199" />
+        <Point X="15.125" Y="6" />
+      </Path>
+    </InheritanceLine>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Domain\Basic\BasicPhase.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SimManning.Domain.Basic.BasicScenario">
+    <Position X="12.5" Y="6" Width="1.5" />
+    <InheritanceLine Type="SimManning.Scenario" FixedToPoint="true">
+      <Path>
+        <Point X="13.125" Y="5.007" />
+        <Point X="13.125" Y="6" />
+      </Path>
+    </InheritanceLine>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Domain\Basic\BasicScenario.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SimManning.Domain.Basic.BasicSimulationDataSet">
+    <Position X="20.25" Y="6" Width="2.75" />
+    <InheritanceLine Type="SimManning.SimulationDataSet" FixedToPoint="true">
+      <Path>
+        <Point X="21.75" Y="4.94" />
+        <Point X="21.75" Y="6" />
+      </Path>
+    </InheritanceLine>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Domain\Basic\BasicSimulationDataSet.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SimManning.Domain.Basic.BasicTask">
+    <Position X="8" Y="8" Width="2" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Domain\Basic\BasicTask.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SimManning.Domain.Basic.BasicTaskDictionary">
+    <Position X="2.5" Y="4.75" Width="2.25" />
+    <InheritanceLine Type="SimManning.TaskDictionary" FixedToPoint="true">
+      <Path>
+        <Point X="3.5" Y="4.175" />
+        <Point X="3.5" Y="4.75" />
+      </Path>
+    </InheritanceLine>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAA=</HashCode>
+      <FileName>Domain\Basic\BasicTaskDictionary.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SimManning.Domain.Basic.BasicWorkplace">
+    <Position X="0.5" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Domain\Basic\BasicWorkplace.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SimManning.Domain.DomainDispatcher">
+    <Position X="23.25" Y="0.5" Width="2" />
+    <NestedTypes>
+      <Delegate Name="SimManning.Domain.DomainDispatcher.TaskAssignmentEventHandler" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>Domain\DomainDispatcher.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Delegate>
+    </NestedTypes>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAEAAAAAAIAAAAAAAAAAAAAAAAAABAI=</HashCode>
+      <FileName>Domain\DomainDispatcher.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SimManning.IO.XmlFileIO">
+    <Position X="16.75" Y="8.5" Width="3" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAEIBAIAIAAAAAAQAAAgQAAAAAQAAAABAAAAQA=</HashCode>
+      <FileName>IO\XmlFileIO.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SimManning.Simulation.Simulator">
+    <Position X="25.5" Y="0.5" Width="2.5" />
+    <Members>
+      <Method Name="AddAsap" Hidden="true" />
+      <Method Name="AddEvent" Hidden="true" />
+      <Field Name="asapQueue" Hidden="true" />
+      <Method Name="ConsumeEvent" Hidden="true" />
+      <Method Name="ConsumeTaskDuplicate" Hidden="true" />
+      <Method Name="ConsumeTaskKilled" Hidden="true" />
+      <Method Name="ConsumeTaskPlanned" Hidden="true" />
+      <Field Name="dispatcher" Hidden="true" />
+      <Method Name="DoPhaseTransition" Hidden="true" />
+      <Method Name="EnqueueTaskArrival" Hidden="true" />
+      <Field Name="EventOrderSign" Hidden="true" />
+      <Field Name="eventQueue" Hidden="true" />
+      <Method Name="FindNextAsapIndex" Hidden="true" />
+      <Method Name="FindNextEventIndex" Hidden="true" />
+      <Method Name="FindStartTime" Hidden="true" />
+      <Method Name="InterruptTask" Hidden="true" />
+      <Method Name="InterruptTaskIds" Hidden="true" />
+      <Method Name="InterruptTasks" Hidden="true" />
+      <Field Name="nbEventInsertions" Hidden="true" />
+      <Field Name="nbObligatoryTasksActive" Hidden="true" />
+      <Method Name="NextEventOrDefault" Hidden="true" />
+      <Method Name="PeekEvent" Hidden="true" />
+      <Method Name="PhaseTransitionOfActiveTask" Hidden="true" />
+      <Method Name="PrepareForNextReplication" Hidden="true" />
+      <Field Name="rand" Hidden="true" />
+      <Method Name="RemoveEvent" Hidden="true" />
+      <Method Name="RestaureAsap" Hidden="true" />
+      <Method Name="ResumeTask" Hidden="true" />
+      <Field Name="simulationDataSet" Hidden="true" />
+      <Field Name="simulationPhase" Hidden="true" />
+      <Field Name="simulationTime" Hidden="true" />
+      <Method Name="StopSlaves" Hidden="true" />
+      <Field Name="taskIdsActive" Hidden="true" />
+    </Members>
+    <Compartments>
+      <Compartment Name="Nested Types" Collapsed="false" />
+    </Compartments>
+    <NestedTypes>
+      <Delegate Name="SimManning.Simulation.Simulator.PhaseTransitionEventHandler">
+        <TypeIdentifier>
+          <NewMemberFileName>Simulation\Simulator.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Delegate>
+      <Delegate Name="SimManning.Simulation.Simulator.TaskErrorEventHandler">
+        <TypeIdentifier>
+          <NewMemberFileName>Simulation\Simulator.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Delegate>
+      <Delegate Name="SimManning.Simulation.Simulator.ErrorMessageEventHandler">
+        <TypeIdentifier>
+          <NewMemberFileName>Simulation\Simulator.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Delegate>
+      <Delegate Name="SimManning.Simulation.Simulator.TasksInterruptedCallback">
+        <TypeIdentifier>
+          <NewMemberFileName>Simulation\Simulator.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Delegate>
+    </NestedTypes>
+    <TypeIdentifier>
+      <HashCode>sAAAAZAJEIIQgiZAABBQCoFQIAABCCAAgJJAACABAEI=</HashCode>
+      <FileName>Simulation\Simulator.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Struct Name="SimManning.SimulationTime" BaseTypeListCollapsed="true">
+    <Position X="31" Y="0.5" Width="2.5" />
+    <Members>
+      <Method Name="Explode" Hidden="true" />
+      <Field Name="timeUnit" Hidden="true" />
+    </Members>
+    <TypeIdentifier>
+      <HashCode>AMEAEREHADEACA1U4QWQAgiUgQFQioEgwVBhQAWAByA=</HashCode>
+      <FileName>SimulationTime-Int64.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Struct>
+  <Struct Name="SimManning.TaskRelation" BaseTypeListCollapsed="true">
+    <Position X="2.25" Y="6.5" Width="2.5" />
+    <Members>
+      <Field Name="relation" Hidden="true" />
+      <Field Name="task1" Hidden="true" />
+      <Field Name="task2" Hidden="true" />
+    </Members>
+    <Compartments>
+      <Compartment Name="Nested Types" Collapsed="false" />
+    </Compartments>
+    <NestedTypes>
+      <Enum Name="SimManning.TaskRelation.RelationType">
+        <TypeIdentifier>
+          <NewMemberFileName>TaskRelation.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Class Name="SimManning.TaskRelation.SemanticsEqualityComparer" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>TaskRelation.cs</NewMemberFileName>
+        </TypeIdentifier>
+        <Lollipop Position="0.2" />
+      </Class>
+    </NestedTypes>
+    <TypeIdentifier>
+      <HashCode>AQAAAAAAAAAAAAQAgACACgAAAAgIAIAACAAABQAAByE=</HashCode>
+      <FileName>TaskRelation.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Struct>
+  <Struct Name="SimManning.TimeDistribution" BaseTypeListCollapsed="true">
+    <Position X="28.25" Y="0.5" Width="2.5" />
+    <Members>
+      <Field Name="max" Hidden="true" />
+      <Field Name="min" Hidden="true" />
+      <Field Name="mode" Hidden="true" />
+      <Field Name="probabilityDistribution" Hidden="true" />
+      <Field Name="xValue" Hidden="true" />
+    </Members>
+    <TypeIdentifier>
+      <HashCode>AKAAEAAAAJCwAASEsACEAkAAAQAAAMBAAAAAAACAByA=</HashCode>
+      <FileName>TimeDistribution.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Struct>
+  <Enum Name="SimManning.ProbabilityDistribution">
+    <Position X="28.5" Y="7" Width="2" />
+    <TypeIdentifier>
+      <HashCode>AACAAAAAAAAAAAAAAQAAAAAAAAAAAAgAAAAAAAAAACA=</HashCode>
+      <FileName>TimeDistribution.cs</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="SimManning.TimeUnit">
+    <Position X="28.75" Y="8.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAQAAAAQAAAAAAAAAAAKAAEQAABAAAAACE=</HashCode>
+      <FileName>TimeUnit.cs</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>

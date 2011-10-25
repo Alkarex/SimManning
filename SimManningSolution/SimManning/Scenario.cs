@@ -8,6 +8,9 @@ using SimManning.IO;
 
 namespace SimManning
 {
+	/// <summary>
+	/// A storyline consisting of a sequence of <see cref="Phase"/>.
+	/// </summary>
 	public abstract class Scenario
 	{
 		readonly string name;
@@ -229,7 +232,7 @@ namespace SimManning
 		}
 
 		#region IO
-		public virtual void LoadFromXml(XElement element)
+		protected internal virtual void LoadFromXml(XElement element)
 		{
 			this.description = element.Element("description").Value;
 			foreach (var xmlPhaseRef in element.Elements("PhaseRef"))
@@ -241,7 +244,7 @@ namespace SimManning
 			}
 		}
 
-		public virtual void SaveToXml(XmlWriter xmlWriter)
+		protected internal virtual void SaveToXml(XmlWriter xmlWriter)
 		{
 			var needsDeclaration = xmlWriter.WriteState == WriteState.Start;
 			xmlWriter.WriteStartElement("Scenario");

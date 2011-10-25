@@ -9,15 +9,22 @@ using System.Diagnostics;
 
 namespace SimManning
 {
+	/// <summary>
+	/// A collection of all possible tasks (<see cref="SimulationTask"/>) that may happen.
+	/// Not all tasks are necessarily used, and some tasks can also be explicitly disabled.<br />
+	/// While a given use-case can have different <see cref="Scenario"/>s and <see cref="Crew"/>s,
+	/// the <see cref="TaskDictionary"/> must be shared.<br />
+	/// (Under consideration to be merged with <see cref="Workplace"/>)
+	/// </summary>
 	public abstract class TaskDictionary : Dictionary<int, SimulationTask>
 	{
 		//internal const int MaxTaskId = 9999;
 
 		public abstract SimulationTask CreateTask(int id);
 
-		public abstract SimulationTask CreateTask(SimulationTask refTask, SimulationTask.LinkingType linkingType);
+		public abstract SimulationTask CreateTask(SimulationTask refTask, TaskLinkingType linkingType);
 
-		public abstract SimulationTask CreateTask(int id, SimulationTask refTask, SimulationTask.LinkingType linkingType);	//TODO: Make protected internal
+		protected internal abstract SimulationTask CreateTask(int id, SimulationTask refTask, TaskLinkingType linkingType);	//TODO: Make protected internal
 
 		public bool Identical(IDictionary<int, SimulationTask> taskDictionary2)
 		{
@@ -211,11 +218,11 @@ namespace SimManning
 		public SimulationTask TaskRef(int refId)
 		{
 			SimulationTask task;
-			return base.TryGetValue(refId, out task) ? CreateTask(task, SimulationTask.LinkingType.Linked) : null;
+			return base.TryGetValue(refId, out task) ? CreateTask(task, TaskLinkingType.Linked) : null;
 		}
 
 		#region IO
-		public virtual void LoadFromXml(XElement element)
+		protected internal virtual void LoadFromXml(XElement element)
 		{//TODO: Catch errors
 			var taskRelationsTemp = new List<TaskDictionary.TaskRelationTemp>();
 			foreach (var xmlTask in element.Elements("Task"))
@@ -233,7 +240,7 @@ namespace SimManning
 			taskRelationsTemp.Clear();
 		}
 
-		public virtual void SaveToXml(XmlWriter xmlWriter)
+		protected internal virtual void SaveToXml(XmlWriter xmlWriter)
 		{
 			xmlWriter.WriteStartElement("Tasks");
 			if (xmlWriter.WriteState == WriteState.Start)
@@ -249,14 +256,14 @@ namespace SimManning
 			xmlWriter.WriteEndElement();
 		}
 
-		protected internal virtual SimulationTask LoadTaskRefFromXml(XElement xmlTaskRef)
+		internal SimulationTask LoadTaskRefFromXml(XElement xmlTaskRef)
 		{
 			if (xmlTaskRef == null) return null;
 			var refId = xmlTaskRef.Attribute("refId").Value.ParseInteger();
 			SimulationTask refTask;
 			if (base.TryGetValue(refId, out refTask))
 			{
-				var taskRef = this.CreateTask(refTask, SimulationTask.LinkingType.Linked);
+				var taskRef = this.CreateTask(refTask, TaskLinkingType.Linked);
 				taskRef.LoadRefFromXml(xmlTaskRef);
 				return taskRef;
 			}

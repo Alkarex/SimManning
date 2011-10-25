@@ -5,6 +5,10 @@ using SimManning.IO;
 
 namespace SimManning
 {
+	/// <summary>
+	/// Object characterising the workplace where the <see cref="Scenario"/> will take place,
+	/// and where the <see cref="Crew"/> will work.
+	/// </summary>
 	public abstract class Workplace
 	{
 		readonly string name;
@@ -45,13 +49,13 @@ namespace SimManning
 		}
 
 		#region IO
-		public virtual void LoadFromXml(XElement element)
+		protected internal virtual void LoadFromXml(XElement element)
 		{
 			var elem = element.Element("description");
 			this.description = elem == null ? String.Empty : elem.Value;
 		}
 
-		public virtual void SaveToXml(XmlWriter xmlWriter)
+		protected internal virtual void SaveToXml(XmlWriter xmlWriter)
 		{
 			var needsDeclaration = xmlWriter.WriteState == WriteState.Start;
 			xmlWriter.WriteStartElement("Workplace");

@@ -3,6 +3,9 @@ using System.Globalization;
 
 namespace SimManning
 {
+	/// <summary>
+	/// Different types of classical probability distributions.
+	/// </summary>
 	public enum ProbabilityDistribution
 	{
 		Undefined,
@@ -12,7 +15,11 @@ namespace SimManning
 	}
 
 	/// <summary>
-	/// Constant, triangular, or exponential distribution.
+	/// Implementation of a time value (<see cref="SimulationTime"/>)
+	/// governed by a probability distribution that can be
+	/// <see cref="ProbabilityDistribution.Constant"/>,
+	/// <see cref="ProbabilityDistribution.Triangular"/>, or
+	/// <see cref="ProbabilityDistribution.Exponential"/>.
 	/// </summary>
 	public struct TimeDistribution : IComparable<TimeDistribution>, IEquatable<TimeDistribution>
 	{//TODO: Optimise with helper variables. Make read-ony.

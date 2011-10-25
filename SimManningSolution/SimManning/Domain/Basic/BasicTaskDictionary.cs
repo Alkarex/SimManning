@@ -9,12 +9,12 @@ namespace SimManning.Domain.Basic
 			return new BasicTask(id);
 		}
 
-		public override SimulationTask CreateTask(SimulationTask refTask, SimulationTask.LinkingType linkingType)
+		public override SimulationTask CreateTask(SimulationTask refTask, TaskLinkingType linkingType)
 		{
 			return new BasicTask(refTask, linkingType);
 		}
 
-		public override SimulationTask CreateTask(int id, SimulationTask refTask, SimulationTask.LinkingType linkingType)	//TODO: Make protected internal
+		protected internal override SimulationTask CreateTask(int id, SimulationTask refTask, TaskLinkingType linkingType)
 		{
 			return new BasicTask(id, refTask, linkingType);
 		}

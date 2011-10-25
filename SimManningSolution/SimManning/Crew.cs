@@ -8,10 +8,16 @@ using SimManning.IO;
 
 namespace SimManning
 {
+	/// <summary>
+	/// A group of <see cref="Crewman"/> to perform the tasks.
+	/// </summary>
 	public abstract class Crew : Dictionary<int, Crewman>
 	{
 		readonly string name;
 
+		/// <summary>
+		/// Name of the crew.
+		/// </summary>
 		public string Name
 		{
 			get { return this.name; }
@@ -19,6 +25,10 @@ namespace SimManning
 
 		string description = String.Empty;
 
+		/// <summary>
+		/// Description of the crew.
+		/// Does not influence the simulation.
+		/// </summary>
 		public string Description
 		{
 			get { return this.description; }
@@ -50,6 +60,7 @@ namespace SimManning
 		/// <summary>
 		/// New empty crew
 		/// </summary>
+		/// <param name="name">Name of the crew</param>
 		/// <param name="taskDictionary">Reference to the list of all tasks at workplace level.</param>
 		protected Crew(string name, TaskDictionary taskDictionary)
 		{
@@ -72,6 +83,10 @@ namespace SimManning
 			}
 		}*/
 
+		/// <summary>
+		/// Provides an error message that is empty if no error is found,
+		/// or which contains some information about the first task not correctly assigned.
+		/// </summary>
 		public virtual string ErrorMessage
 		{
 			get
@@ -83,25 +98,37 @@ namespace SimManning
 			}
 		}
 
+		/// <summary>
+		/// Next available crewman ID.
+		/// </summary>
 		public virtual int NextCrewmanId
 		{
 			get { return (base.Count > 0) ? base.Keys.Max() + 1 : 1; }
 		}
 
-		public virtual bool Identical(Crew crew2)
+		/// <summary>
+		/// Tells if two crews are logically identical.
+		/// </summary>
+		/// <param name="other">Another crew to compare</param>
+		/// <returns></returns>
+		public virtual bool Identical(Crew other)
 		{
-			if ((crew2 == null) || (this.name != crew2.name) ||
-				(base.Values.Where(cm => cm.Id > 0).Count() != crew2.Values.Where(cm => cm.Id > 0).Count()))
+			if ((other == null) || (this.name != other.name) ||
+				(base.Values.Where(cm => cm.Id > 0).Count() != other.Values.Where(cm => cm.Id > 0).Count()))
 				return false;
 			Crewman crewman2;
 			foreach (var crewman in base.Values.Where(cm => cm.Id > 0))
-				if (!(crew2.TryGetValue(crewman.Id, out crewman2) && crewman.Identical(crewman2)))
+				if (!(other.TryGetValue(crewman.Id, out crewman2) && crewman.Identical(crewman2)))
 					return false;
 			return true;
 		}
 
 		#region IO
-		public virtual void LoadFromXml(XElement element)
+		/// <summary>
+		/// Load a crew from an XML serialisation.
+		/// </summary>
+		/// <param name="element">An XML element representing a crew</param>
+		protected internal virtual void LoadFromXml(XElement element)
 		{
 			this.description = element.Element("description").Value;
 			foreach (var xmlCrewman in element.Elements("CrewMember"))
@@ -112,7 +139,11 @@ namespace SimManning
 			}
 		}
 
-		public virtual void SaveToXml(XmlWriter xmlWriter)
+		/// <summary>
+		/// Save a crew to an XML serialisation.
+		/// </summary>
+		/// <param name="xmlWriter">An XML writer</param>
+		protected internal virtual void SaveToXml(XmlWriter xmlWriter)
 		{
 			var needsDeclaration = xmlWriter.WriteState == WriteState.Start;
 			xmlWriter.WriteStartElement("Crew");

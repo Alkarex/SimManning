@@ -26,7 +26,7 @@ namespace SimManning
 		/// <summary>
 		/// Strictly positive integer number of ticks per second, for the internal representation of time.
 		/// </summary>
-		/// <remarks>This is the central parameter controlling the time accuracy.</remarks>
+		/// <remarks>This is the central parameter controlling the time accuracy. Can be tuned.</remarks>
 		public const int TicksPerSecond = 1000;
 
 		/// <summary>
@@ -350,6 +350,10 @@ namespace SimManning
 			return stringBuilder.ToString();
 		}
 
+		/// <summary>
+		/// Generates a string representation suitable for user interfaces.
+		/// </summary>
+		/// <returns>A string representation suitable for user interface</returns>
 		public string ToStringUI()
 		{
 			bool negativeSign;

@@ -44,7 +44,7 @@ namespace SimManning.IO
 		/// <summary>
 		/// Parse a double and is resitant for null, empty, and comma for decimal separator.
 		/// </summary>
-		/// <param name="s">The string to parse as a double</param>
+		/// <param name="text">The string to parse as a double</param>
 		/// <param name="result">The double</param>
 		/// <returns>True if the parsing was successful, false otherwise</returns>
 		public static bool TryParseReal(this string text, out double result)
