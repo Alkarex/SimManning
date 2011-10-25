@@ -2,17 +2,24 @@
 
 namespace SimManning
 {
+	/// <summary>
+	/// Different common time units that can be used in <see cref="SimulationTime"/>.
+	/// </summary>
 	public enum TimeUnit
 	{
+		/// <summary>
+		/// Undefined and thus invalid.
+		/// </summary>
 		Undefined,
+
 		/// <summary>
 		/// Most precise internal representation of time.
 		/// </summary>
 		/// <remarks>
-		/// Different from TimeSpan!
+		/// Different from <see cref="TimeSpan.Ticks"/>!
 		/// </remarks>
 		Ticks,
-		//Milliseconds,
+
 		Seconds,
 		Minutes,
 		Hours,
@@ -22,6 +29,9 @@ namespace SimManning
 		Years
 	}
 
+	/// <summary>
+	/// Helper class with static extensions for <see cref="TimeUnit"/>.
+	/// </summary>
 	public static class TimeUnitExtensions
 	{
 		public static TimeUnit ParseTimeUnit(this string value)

@@ -7,8 +7,6 @@
 			<Word>x</Word>
 		</Recognized>
 		<DiscreteExceptions>
-			<Term>crewmember</Term>
-			<Term>crewmembers</Term>
 			<Term>daytime</Term>
 			<Term>weekday</Term>
 		</DiscreteExceptions>

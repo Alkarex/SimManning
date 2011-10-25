@@ -10,6 +10,10 @@ using SimManning.IO;
 
 namespace SimManning
 {
+	/// <summary>
+	/// A task to be simulated. Almost everything is represented as a task (of different <see cref="TaskType"/>),
+	/// including rest, sleep, weather events, etc.
+	/// </summary>
 	public abstract partial class SimulationTask
 	{
 		readonly int id;
@@ -21,12 +25,20 @@ namespace SimManning
 
 		string name;
 
+		/// <summary>
+		/// The name of the task.
+		/// A suffix may be added by <see cref="SimulationDataSet.AutoExpandTasks"/>
+		/// iff the task has <see cref="AutoExpandToAllCrewmen"/> set to true.
+		/// </summary>
 		public string Name
 		{
 			get { return this.name; }
 			set { this.name = value; }
 		}
 
+		/// <summary>
+		/// Get the name of the task without a suffix possibly added by <see cref="SimulationDataSet.AutoExpandTasks"/>.
+		/// </summary>
 		public string NameNotExpanded
 		{
 			get
@@ -83,8 +95,8 @@ namespace SimManning
 				this.taskTypeSubCode1 = value.SubCode();
 				switch (this.taskTypeSubCode1)
 				{
-					case (int)SimulationTask.StandardType.Idle:
-					case (int)SimulationTask.StandardType.Rest:
+					case (int)StandardTaskType.Idle:
+					case (int)StandardTaskType.Rest:
 						this.isWork = false;
 						break;
 					default:
@@ -119,7 +131,7 @@ namespace SimManning
 		}
 
 		/// <summary>
-		/// Return true if this is an additional tasks resulting from the auto-expansion of a with attribute Task.autoAssignToAllCrewMembers set to true, false otherwise.
+		/// Return true if this is an additional tasks resulting from the auto-expansion of a with attribute <see cref="AutoExpandToAllCrewmen"/> set to true, false otherwise.
 		/// </summary>
 		/// <remarks>
 		/// Additional auto-expanded tasks have a name containing a vertical bar '|'.
@@ -193,6 +205,10 @@ namespace SimManning
 
 		InterruptionTypes interruptionErrorPolicy;
 
+		/// <summary>
+		/// (Not used yet) Defines what actions to undertake when a task is interrupted by another task of higher priority.
+		/// </summary>
+		[Obsolete("Not used/implemented yet!")]
 		public InterruptionTypes InterruptionErrorPolicy	//TODO: Use InterruptionErrorPolicy
 		{
 			get { return this.interruptionErrorPolicy; }
@@ -201,6 +217,9 @@ namespace SimManning
 
 		int priority;
 
+		/// <summary>
+		/// Priority of the task relatively to the other tasks.
+		/// </summary>
 		public int Priority
 		{
 			get { return this.priority; }
@@ -209,6 +228,10 @@ namespace SimManning
 
 		bool enabled = true;
 
+		/// <summary>
+		/// Specifies if the task is used or not in the scenario.
+		/// If false, the task will not act like non-existing.
+		/// </summary>
 		public bool Enabled
 		{
 			get { return this.RootTask.enabled; }
@@ -221,6 +244,9 @@ namespace SimManning
 
 		readonly List<int> phaseTypes;
 
+		/// <summary>
+		/// List of phase types in which the task is always active.
+		/// </summary>
 		public List<int> PhaseTypes
 		{
 			get { return this.phaseTypes; }
@@ -228,6 +254,10 @@ namespace SimManning
 
 		readonly List<int> crewmanTypes;
 
+		/// <summary>
+		/// List of crewman types more likelly to be assigned to the task.
+		/// </summary>
+		[Obsolete("Not used!")]
 		public List<int> CrewmanTypes
 		{
 			get { return this.crewmanTypes; }
@@ -272,7 +302,7 @@ namespace SimManning
 			get
 			{
 				return this.noDuplicate ||
-					((this.numberOfCrewmenNeeded <= 1) &&	//No optimisation currently for tasks with more than 1 crewmember needed
+					((this.numberOfCrewmenNeeded <= 1) &&	//No optimisation currently for tasks with more than 1 crewman needed
 						((this.taskInterruptionPolicy & (TaskInterruptionPolicies.ContinueOrResumeWithError | TaskInterruptionPolicies.ContinueOrResumeWithoutError)) == this.taskInterruptionPolicy));
 			}
 		}
@@ -314,11 +344,8 @@ namespace SimManning
 		/// </summary>
 		/// <param name="id">The ID of the new task, potentially different from the reference task.</param>
 		/// <param name="refTask">The parent task from which parameters will be copied</param>
-		/// <param name="linked">
-		/// Set to true to share with the parent task the same list of phase types, crewman types, slaves, masters, and some more internal lists.
-		/// When false, these lists will be copied.
-		/// </param>
-		protected SimulationTask(int id, SimulationTask refTask, LinkingType linkingType)
+		/// <param name="linkingType">Controls the possible sharing with the reference task some data structure</param>
+		protected SimulationTask(int id, SimulationTask refTask, TaskLinkingType linkingType)
 		{
 			this.id = id;
 			this.refTask = refTask;
@@ -329,13 +356,13 @@ namespace SimManning
 			}
 			switch (linkingType)
 			{
-				case LinkingType.Linked:
+				case TaskLinkingType.Linked:
 					this.simulationCurrentQualifications = refTask.simulationCurrentQualifications;
 					this.parallelTasks = refTask.parallelTasks;
 					this.slaveTasks = refTask.slaveTasks;
 					this.masterTasks = refTask.masterTasks;
 					break;
-				case LinkingType.Copy:
+				case TaskLinkingType.Copy:
 					//this.crewmanTypes = refTask.crewmanTypes.ToList();
 					//this.phaseTypes = refTask.phaseTypes.ToList();
 					this.simulationCurrentQualifications = new Dictionary<Crewman, byte>(this.refTask.simulationCurrentQualifications);
@@ -343,7 +370,7 @@ namespace SimManning
 					this.slaveTasks = new Dictionary<int, SimulationTask>(this.refTask.slaveTasks);
 					this.masterTasks = new Dictionary<int, SimulationTask>(this.refTask.masterTasks);
 					break;
-				case LinkingType.Clear:
+				case TaskLinkingType.Clear:
 				default:
 					//this.crewmanTypes = refTask.crewmanTypes.ToList();
 					//this.phaseTypes = refTask.phaseTypes.ToList();
@@ -360,8 +387,8 @@ namespace SimManning
 		/// Create a new task based on a reference task from which the different parameters will be copied (including task ID).
 		/// </summary>
 		/// <param name="refTask">The parent task from which parameters will be copied</param>
-		/// <param name="linked">Set to true to share with the parent task the same list of phase types, crewman types, slaves, masters, and some more internal lists</param>
-		protected SimulationTask(SimulationTask refTask, LinkingType linkingType) : this(refTask.id, refTask, linkingType) { }
+		/// <param name="linkingType">Controls the possible sharing with the reference task some data structures</param>
+		protected SimulationTask(SimulationTask refTask, TaskLinkingType linkingType) : this(refTask.id, refTask, linkingType) { }
 
 		/// <summary>
 		/// Reset to the default parameters of the parent Task, except for readonly attributes (e.g. this.id) and lists.
@@ -371,7 +398,7 @@ namespace SimManning
 			if (this.refTask == null)
 			{
 				this.name = "!Invalid";
-				this.TaskType = (int)default(StandardType);
+				this.TaskType = (int)default(StandardTaskType);
 				this.taskInterruptionPolicy = TaskInterruptionPolicies.Undefined;
 				this.phaseInterruptionPolicy = PhaseInterruptionPolicies.Undefined;
 				this.scenarioInterruptionPolicy = ScenarioInterruptionPolicies.Undefined;
@@ -544,8 +571,8 @@ namespace SimManning
 			{
 				switch (this.taskTypeSubCode1)
 				{
-					case (int)SimulationTask.StandardType.Idle:
-					case (int)SimulationTask.StandardType.Rest:
+					case (int)StandardTaskType.Idle:
+					case (int)StandardTaskType.Rest:
 						return false;
 					default:
 						return true;
@@ -604,8 +631,8 @@ namespace SimManning
 				this.taskInterruptionPolicy = TaskInterruptionPolicies.ContinueOrResumeWithError;
 				this.phaseInterruptionPolicy = PhaseInterruptionPolicies.ContinueOrDropWithError;
 			}
-			if (this.taskType.IsSubCodeOf(StandardType.ExternalCondition) ||
-				this.taskType.IsSubCodeOf(StandardType.CriticalEvents))
+			if (this.taskType.IsSubCodeOf(StandardTaskType.ExternalCondition) ||
+				this.taskType.IsSubCodeOf(StandardTaskType.CriticalEvents))
 			{
 				this.taskInterruptionPolicy = TaskInterruptionPolicies.DropWithError;
 				this.phaseInterruptionPolicy = PhaseInterruptionPolicies.ResumeOrDropWithError;
@@ -681,7 +708,7 @@ namespace SimManning
 			{
 				if (this.id == 0)
 					return "Invalid task ID!";
-				if ((this.taskType <= (int)StandardType.Idle) ||
+				if ((this.taskType <= (int)StandardTaskType.Idle) ||
 					(this.Duration.Unit == TimeUnit.Undefined) ||
 					(this.taskInterruptionPolicy == TaskInterruptionPolicies.Undefined) ||
 					(this.phaseInterruptionPolicy == PhaseInterruptionPolicies.Undefined) ||
@@ -692,7 +719,7 @@ namespace SimManning
 					return "Some types are undefined!";
 				if ((this.priority <= 0) || (this.priority > 1000))
 					return "Priority out of range ]0..1000]!";
-				if (this.taskType.IsSubCodeOf(StandardType.ExternalCondition) || this.taskType.IsSubCodeOf(StandardType.CriticalEvents))
+				if (this.taskType.IsSubCodeOf(StandardTaskType.ExternalCondition) || this.taskType.IsSubCodeOf(StandardTaskType.CriticalEvents))
 				{
 					if (this.Duration.Distribution == ProbabilityDistribution.Exponential)
 						return "Only external conditions and critical events can have a duration defined as an exponential distribution (0, mean, 0)!";
@@ -768,7 +795,7 @@ namespace SimManning
 				}
 				if ((this.relativeDate == RelativeDateType.TriggeredByAnEvent) && (this.masterTasks.Count <= 0))
 					result += " Tasks triggered by an event should have at least one master!";
-				if ((this.slaveTasks.Count <= 0) && (this.taskType.IsSubCodeOf(StandardType.ExternalCondition) || this.taskType.IsSubCodeOf(StandardType.CriticalEvents)))
+				if ((this.slaveTasks.Count <= 0) && (this.taskType.IsSubCodeOf(StandardTaskType.ExternalCondition) || this.taskType.IsSubCodeOf(StandardTaskType.CriticalEvents)))
 					result += " External conditions and critical events are meant to trigger at least one task (slave).";
 				foreach (var task2 in this.masterTasks.Values)
 					if (!task2.slaveTasks.ContainsKey(this.id))
@@ -810,7 +837,7 @@ namespace SimManning
 			this.TaskType = xmlTask.Attribute("taskType").ParseInteger();
 			//this.systemTask = (attr = xmlTask.Attribute("systemTask")) == null ? false : attr.Value.ParseBoolean();
 			this.autoExpandToAllCrewmen = (attr = xmlTask.Attribute("autoAssignToAllCrewMembers")) == null ? false : attr.Value.ParseBoolean();
-			this.RelativeDate = (attr = xmlTask.Attribute("relativeDate")) == null ? SimulationTask.RelativeDateType.Undefined : SimulationTask.ParseRelativeDateType(attr.Value);
+			this.RelativeDate = (attr = xmlTask.Attribute("relativeDate")) == null ? RelativeDateType.Undefined : SimulationTask.ParseRelativeDateType(attr.Value);
 			this.StartDate = XmlIO.ParseTimeDistribution(xmlTask.Attribute("startDateUnit"),
 				xmlTask.Attribute("startDateMin"), xmlTask.Attribute("startDateMean"), xmlTask.Attribute("startDateMax"));
 			if (this.relativeDate == RelativeDateType.Frequency)
@@ -925,7 +952,8 @@ namespace SimManning
 			}
 			xmlWriter.WriteEndElement();
 			xmlWriter.WriteStartElement("taskRelations");
-			var relStr = ((int)TaskRelation.RelationType.Parallel).ToString(CultureInfo.InvariantCulture);
+			//var relStr = ((int)TaskRelation.RelationType.Parallel).ToString(CultureInfo.InvariantCulture);
+			var relStr = TaskRelation.RelationType.Parallel.ToString();
 			foreach (var taskId2 in this.parallelTasks.Keys)
 			{
 				xmlWriter.WriteStartElement("TaskRef");
@@ -933,7 +961,8 @@ namespace SimManning
 				xmlWriter.WriteAttributeString("refId", taskId2.ToString(CultureInfo.InvariantCulture));
 				xmlWriter.WriteEndElement();
 			}
-			relStr = ((int)TaskRelation.RelationType.Slave).ToString(CultureInfo.InvariantCulture);
+			//relStr = ((int)TaskRelation.RelationType.Slave).ToString(CultureInfo.InvariantCulture);
+			relStr = TaskRelation.RelationType.Slave.ToString();
 			foreach (var taskId2 in this.slaveTasks.Keys)
 			{
 				xmlWriter.WriteStartElement("TaskRef");
@@ -941,7 +970,8 @@ namespace SimManning
 				xmlWriter.WriteAttributeString("refId", taskId2.ToString(CultureInfo.InvariantCulture));
 				xmlWriter.WriteEndElement();
 			}
-			relStr = ((int)TaskRelation.RelationType.Master).ToString(CultureInfo.InvariantCulture);
+			//relStr = ((int)TaskRelation.RelationType.Master).ToString(CultureInfo.InvariantCulture);
+			relStr = TaskRelation.RelationType.Master.ToString();
 			foreach (var taskId2 in this.masterTasks.Keys)
 			{
 				xmlWriter.WriteStartElement("TaskRef");
@@ -1067,6 +1097,9 @@ namespace SimManning
 
 		SimulationTime simulationTimeArrives = new SimulationTime(TimeUnit.Seconds, -1.0);
 
+		/// <summary>
+		/// Simulation time when this task instance has arrived (typically when changing state from "planned" to running).
+		/// </summary>
 		public SimulationTime SimulationTimeArrives
 		{
 			get { return this.simulationTimeArrives; }
@@ -1086,6 +1119,9 @@ namespace SimManning
 
 		SimulationTime remainingDuration = SimulationTime.Zero;
 
+		/// <summary>
+		/// Remaining man-hours before completion of the task.
+		/// </summary>
 		public SimulationTime RemainingDuration
 		{
 			get
@@ -1096,11 +1132,17 @@ namespace SimManning
 			internal set { this.remainingDuration = value; }
 		}
 
+		/// <summary>
+		/// True if the task is completed, false otherwise.
+		/// </summary>
 		public bool Completed
 		{
-			get { return this.remainingDuration <= SimulationTime.Zero; }
+			get { return this.remainingDuration.NegativeOrZero; }
 		}
 
+		/// <summary>
+		/// List of crewmen currently working on the task.
+		/// </summary>
 		public readonly List<Crewman> simulationCrewmenAssigned = new List<Crewman>();
 
 		/// <summary>
@@ -1131,7 +1173,7 @@ namespace SimManning
 				if (duration.Positive)
 				{
 					this.remainingDuration -= duration;
-					Debug.Assert((this.taskType == (int)SimulationTask.StandardType.InternalWait) || Allowed(phase), "A task must not run in phases where it is not allowed!");
+					Debug.Assert((this.taskType == (int)StandardTaskType.InternalWait) || Allowed(phase), "A task must not run in phases where it is not allowed!");
 					Debug.Assert(duration <= currentTime - phase.simulationTimeBegin, "A task cannot last longer than its phase!");
 					return duration;
 				}
@@ -1151,7 +1193,6 @@ namespace SimManning
 		/// <summary>
 		/// To call when the time since last update needs to be discarded.
 		/// Used for instance when a task has to start a bit before than current time and be shortened accordingly.
-		/// This method does not call <see cref="UpdateCrewmen"/>.
 		/// </summary>
 		/// <param name="currentTime">Current simulation time.</param>
 		public virtual void DiscardUntilNow(SimulationTime currentTime)
@@ -1170,6 +1211,12 @@ namespace SimManning
 			return this.remainingDuration;
 		}
 
+		/// <summary>
+		/// Check the different time constraints to tell when the task will next be allowed to be resumed.
+		/// </summary>
+		/// <param name="eventTime">A simulation time</param>
+		/// <param name="allowCurrentTime">Gives the possibility to use the given simulation time</param>
+		/// <returns>A simulation time in the relative future when the task is allowed to run</returns>
 		public SimulationTime NextPossibleResume(SimulationTime eventTime, bool allowCurrentTime = true)
 		{
 			var workStart = eventTime.NextDayTime(this.DailyHourStart, allowCurrentTime);
@@ -1188,6 +1235,11 @@ namespace SimManning
 			return eventTime;
 		}
 
+		/// <summary>
+		/// Tells if the task is allowed to run at this time of the day.
+		/// </summary>
+		/// <param name="eventTime">A date/time; only the time of the day will be used.</param>
+		/// <returns>true if the task is allowed to run at this time of the day, false otherwise.</returns>
 		public bool IsAllowedTime(SimulationTime eventTime)
 		{
 			return eventTime.InDayTimeInterval(this.DailyHourStart, this.DailyHourEnd) &&

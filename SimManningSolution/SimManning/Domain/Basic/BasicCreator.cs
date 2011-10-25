@@ -1,9 +1,19 @@
 ﻿using System;
+using SimManning.IO;
 
 namespace SimManning.Domain.Basic
 {
 	public sealed class BasicCreator : DomainCreator
 	{
+		/// <summary>
+		/// Default global initialisation of static variables.
+		/// </summary>
+		static BasicCreator()
+		{
+			XmlIO.XmlDomain = "BasicDomain";
+			XmlIO.XmlDomainVersion = "1.2";
+		}
+
 		public override Workplace CreateWorkplace(string name)
 		{
 			return new BasicWorkplace(name);
@@ -29,19 +39,14 @@ namespace SimManning.Domain.Basic
 			return new BasicScenario(name, loadPhase);
 		}
 
-		public override SimulationDataSet CreateSimulationDataSetManning(Workplace workplace, TaskDictionary taskDictionary, Scenario scenario, Crew crew)
+		public override SimulationDataSet CreateSimulationDataSet(Workplace workplace, TaskDictionary taskDictionary, Scenario scenario, Crew crew)
 		{
 			return new BasicSimulationDataSet(workplace, taskDictionary, scenario, crew);
 		}
 
-		public override SimulationDataSet CreateSimulationDataSetManning(string importedWorkplaceName, string importedScenarioName, string importedCrewName)
+		public override SimulationDataSet CreateSimulationDataSet(string importedWorkplaceName, string importedScenarioName, string importedCrewName)
 		{
 			return new BasicSimulationDataSet(importedWorkplaceName, importedScenarioName, importedCrewName);
-		}
-
-		public override SimulationDataSet LoadSimulationDataSetManningFromSingleXml(string xmlText)
-		{//Only to get the signature in class diagrams
-			return base.LoadSimulationDataSetManningFromSingleXml(xmlText);
 		}
 	}
 }

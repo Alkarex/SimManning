@@ -6,7 +6,9 @@ using System.Xml.Linq;
 namespace SimManning.IO
 {
 	/// <summary>
-	/// Extensions for XML IO on the file system. Separated because different in Silverlight.
+	/// Extensions for XML IO on the file system.
+	/// Separated because it uses some APIs not available in Metro and Silverlight.
+	/// This class can safely be removed in projects not supporting <see cref="System.IO"/>.
 	/// </summary>
 	public static class XmlFileIO
 	{
@@ -117,7 +119,7 @@ namespace SimManning.IO
 		}
 		#endregion
 
-		#region SimulationDataset
+		#region SimulationDataSet
 		public static SimulationDataSet LoadSimulationDataSetFromXml(this DomainCreator domainCreator, string path, string workplaceName, string scenarioName, string crewName)
 		{
 			path = path.TrimEnd('/', '\\') + Path.DirectorySeparatorChar;
@@ -141,7 +143,7 @@ namespace SimManning.IO
 					else return null;
 				});
 			scenario.LoadFromXml(path + scenarioName + XmlFileIO.ScenarioFileNameExtension);
-			return domainCreator.CreateSimulationDataSetManning(workplace, taskList, scenario, crew);
+			return domainCreator.CreateSimulationDataSet(workplace, taskList, scenario, crew);
 		}
 
 		public static SimulationDataSet LoadSimulationDataSetFromSingleXmlFile(this DomainCreator domainCreator, string fileName)
@@ -150,7 +152,7 @@ namespace SimManning.IO
 				throw new FileNotFoundException("Simulation dataSet file not found!", fileName);
 			using (var reader = XmlReader.Create(fileName, XmlIO.SimManningXmlReaderSettings))
 			{
-				return domainCreator.LoadSimulationDataSetManningFromSingleXml(XDocument.Load(reader, LoadOptions.None).Root);
+				return domainCreator.LoadSimulationDataSetFromSingleXml(XDocument.Load(reader, LoadOptions.None).Root);
 			}
 		}
 

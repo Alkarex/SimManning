@@ -6,8 +6,8 @@ namespace SimManning.Domain.Basic
 	{
 		public BasicTask(int id) : base(id) { }
 
-		public BasicTask(SimulationTask refTask, LinkingType linkingType = LinkingType.Linked) : base(refTask, linkingType) { }
+		public BasicTask(SimulationTask refTask, TaskLinkingType linkingType = TaskLinkingType.Linked) : base(refTask, linkingType) { }
 
-		internal BasicTask(int id, SimulationTask refTask, LinkingType linkingType = LinkingType.Linked) : base(id, refTask, linkingType) { }
+		internal BasicTask(int id, SimulationTask refTask, TaskLinkingType linkingType = TaskLinkingType.Linked) : base(id, refTask, linkingType) { }
 	}
 }

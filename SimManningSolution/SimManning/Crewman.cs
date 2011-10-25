@@ -9,6 +9,9 @@ using SimManning.Simulation;
 
 namespace SimManning
 {
+	/// <summary>
+	/// A person, member of a <see cref="Crew"/>, able to perfom some tasks.
+	/// </summary>
 	public abstract class Crewman : IComparable<Crewman>
 	{
 		int id;
@@ -169,13 +172,12 @@ namespace SimManning
 		/// Refresh all status parameters of the crewman such as cumulated work time.
 		/// This is called automatically by <see cref="AssignTask"/>, <see cref="DismissTask"/>,
 		/// at at the end of each phase transition by <see cref="Simulator"/>.
-		/// Furthermore, this should be called by implementations of <see cref="DomainDispatcher"/>
+		/// Furthermore, this should be called by implementations of <see cref="SimManning.Domain.DomainDispatcher"/>
 		/// before deciding which crewmen should take a job.
 		/// </summary>
 		/// <remarks>Implementations of domains should override this function to include their domain-specific parameters</remarks>
 		/// <param name="time">Current simulation time</param>
 		/// <returns>true if a refresh was needed, false otherwise</returns>
-		/// <seealso cref="SimulationTask.UpdateCrewmen"/>
 		public virtual bool RefreshStatus(SimulationTime time)
 		{//In the base class, we only have cumulatedWorkTime
 			Debug.Assert(this.lastRefreshTime <= time, "Simulation cannot go back in time!");
@@ -192,8 +194,7 @@ namespace SimManning
 
 		/// <summary>
 		/// Assign the crewman to a running task.
-		/// This starts by calling <see cref="RefreshStatus"/>, increase <see cref="CurrentLoad"/>,
-		/// and then add a new entry to <see cref="workHistory"/>.
+		/// This starts by calling <see cref="RefreshStatus"/>, and increase <see cref="CurrentLoad"/>.
 		/// </summary>
 		/// <param name="time">Current simulation time</param>
 		/// <param name="phase">Current phase</param>
@@ -207,8 +208,7 @@ namespace SimManning
 
 		/// <summary>
 		/// Remove a running or completed task from the crewman.
-		/// This starts by calling <see cref="RefreshStatus"/>, decrease <see cref="CurrentLoad"/>,
-		/// and then add a new entry to <see cref="workHistory"/>.
+		/// This starts by calling <see cref="RefreshStatus"/>, and decrease <see cref="CurrentLoad"/>.
 		/// </summary>
 		/// <param name="time">Current simulation time</param>
 		/// <param name="phase">Current phase</param>

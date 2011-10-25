@@ -12,17 +12,44 @@ namespace SimManning
 	/// </summary>
 	public abstract class DomainCreator
 	{
+		/// <summary>
+		/// Create a new workplace.
+		/// </summary>
+		/// <param name="name">Name of the new workplace</param>
+		/// <returns>The workplace</returns>
 		public abstract Workplace CreateWorkplace(string name);
 
+		/// <summary>
+		/// Create a new task dictionnary.
+		/// </summary>
+		/// <returns>The task dictionnary</returns>
 		public abstract TaskDictionary CreateTaskDictionary();
 
+		/// <summary>
+		/// Create a new phase.
+		/// </summary>
+		/// <param name="name">Name of the new phase</param>
+		/// <param name="taskDictionary">An existing task dictionnary of the same domain</param>
+		/// <returns>The new phase</returns>
 		public abstract Phase CreatePhase(string name, TaskDictionary taskDictionary);
 
+		/// <summary>
+		/// Create a new scenario.
+		/// </summary>
+		/// <param name="name">Name of the new scenario</param>
+		/// <param name="loadPhase">A delegate function capable of loading a phase given its name</param>
+		/// <returns>A new scenario</returns>
 		public abstract Scenario CreateScenario(string name, Func<string, Phase> loadPhase);
 
+		/// <summary>
+		/// Create a new crew.
+		/// </summary>
+		/// <param name="name">Name of the new crew</param>
+		/// <param name="taskDictionary">An existing task dictionnary of the same domain</param>
+		/// <returns></returns>
 		public abstract Crew CreateCrew(string name, TaskDictionary taskDictionary);
 
-		public abstract SimulationDataSet CreateSimulationDataSetManning(Workplace workplace, TaskDictionary taskDictionary, Scenario scenario, Crew crew);
+		public abstract SimulationDataSet CreateSimulationDataSet(Workplace workplace, TaskDictionary taskDictionary, Scenario scenario, Crew crew);
 
 		/// <summary>
 		/// Constructor preparing a new empty dataSet.
@@ -30,10 +57,15 @@ namespace SimManning
 		/// <param name="importedWorkplaceName">The name of the imported workplace</param>
 		/// <param name="importedCrewName">The name of the imported crew</param>
 		/// <param name="importedScenarioName">The name of the imported scenario</param>
-		public abstract SimulationDataSet CreateSimulationDataSetManning(string importedWorkplaceName, string importedScenarioName, string importedCrewName);
+		public abstract SimulationDataSet CreateSimulationDataSet(string importedWorkplaceName, string importedScenarioName, string importedCrewName);
 
 		#region IO
-		protected internal virtual SimulationDataSet LoadSimulationDataSetManningFromSingleXml(XElement element)
+		/// <summary>
+		/// Load a crew from an XML serialisation.
+		/// </summary>
+		/// <param name="element">An XML element representing a complete simulation dataSet</param>
+		/// <returns>The new simulation dataSet</returns>
+		protected internal virtual SimulationDataSet LoadSimulationDataSetFromSingleXml(XElement element)
 		{
 			var myElement = element.Element("Workplace");
 			if (myElement == null) return null;
@@ -59,7 +91,7 @@ namespace SimManning
 					return phase;
 				});
 			scenario.LoadFromXml(myElement);
-			var simulationDataSet = CreateSimulationDataSetManning(workplace, taskList, scenario, crew);
+			var simulationDataSet = CreateSimulationDataSet(workplace, taskList, scenario, crew);
 			var xmlAssertions = element.Element("Assertions");
 			if (xmlAssertions != null)
 				foreach (var xmlAssertion in xmlAssertions.Elements("Assertion"))
@@ -68,17 +100,28 @@ namespace SimManning
 			return simulationDataSet;
 		}
 
-		public virtual SimulationDataSet LoadSimulationDataSetManningFromSingleXml(string xmlText)
+		/// <summary>
+		/// Load a crew from an XML serialisation.
+		/// </summary>
+		/// <param name="textReader">An XML text reader representing a complete simulation dataSet</param>
+		/// <returns>The new simulation dataSet</returns>
+		public SimulationDataSet LoadSimulationDataSetFromSingleXmlString(TextReader textReader)
 		{
-			if (!String.IsNullOrEmpty(xmlText))
+			using (var reader = XmlReader.Create(textReader, XmlIO.SimManningXmlReaderSettings))
 			{
-				var textReader = new StringReader(xmlText);
-				using (var reader = XmlReader.Create(textReader, XmlIO.SimManningXmlReaderSettings))
-				{
-					return LoadSimulationDataSetManningFromSingleXml(XDocument.Load(reader, LoadOptions.None).Root);
-				}
+				return LoadSimulationDataSetFromSingleXml(XDocument.Load(reader, LoadOptions.None).Root);
 			}
-			return null;
+		}
+
+		/// <summary>
+		/// Load a crew from an XML serialisation.
+		/// </summary>
+		/// <param name="xmlText">An XML string representing a complete simulation dataSet</param>
+		/// <returns>The new simulation dataSet</returns>
+		public SimulationDataSet LoadSimulationDataSetFromSingleXmlString(string xmlText)
+		{
+			if (String.IsNullOrEmpty(xmlText)) return null;
+			return LoadSimulationDataSetFromSingleXmlString(new StringReader(xmlText));
 		}
 		#endregion
 	}

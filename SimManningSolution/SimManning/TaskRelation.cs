@@ -3,11 +3,23 @@ using System.Collections.Generic;
 
 namespace SimManning
 {
+	/// <summary>
+	/// A relationship between two tasks (<see cref="SimulationTask"/>).
+	/// The different possible relation types are defined in <see cref="RelationType"/>.
+	/// </summary>
 	public struct TaskRelation : IComparable<TaskRelation>, IEquatable<TaskRelation>
 	{
+		/// <summary>
+		/// The different possible relation types between two <see cref="SimulationTask"/>s.
+		/// </summary>
 		public enum RelationType
 		{
+			/// <summary>
+			/// No relation between the two tasks. This is invalid.
+			/// In case of no relation between two tasks, simply remove this <see cref="TaskRelation"/> completely.
+			/// </summary>
 			None = 0,
+
 			//IsStartedWhenBegin = -1,
 			//IsStoppedWhenBegin = -2,
 			//IsStartedWhenEnd = -5,
@@ -17,17 +29,38 @@ namespace SimManning
 			//StartWhenEnd = 5,
 			//StopWhenEnd = 6,
 			//Predecessor = 3,
-			Parallel = 4,
+
 			/// <summary>
-			/// Task attached to n other "master" tasks (is created with the first master, and destroyed when the last master ends).
+			/// The two tasks are to be executed only in parallel,
+			/// meaning that one task must wait for the other before starting,
+			/// and be interrupted if the other is interrupted.
+			/// </summary>
+			Parallel = 4,
+
+			/// <summary>
+			/// The first task is a slave of the second task,
+			/// meaning that when the second task (<see cref="Master"/>) starts,
+			/// the first task starts if not already started by another master.
+			/// When the second task stops, the first task will stop if it does not have another active master.
 			/// </summary>
 			Slave = 7,
+
+			/// <summary>
+			/// The first task is a master of the second task,
+			/// meaning that when the first task starts,
+			/// the second task (<see cref="Slave"/>) starts if not already started by another master.
+			/// When the first task stops, the second task will stop if it does not have another active master.
+			/// </summary>
 			Master = -7,
-			//NoDuplicate = 8	//Replaced by Task.NoDuplicate
+
+			//NoDuplicate = 8	//Reflexive (task 1 = task 2). Replaced by Task.NoDuplicate
 		}
 
 		readonly SimulationTask task1;
 
+		/// <summary>
+		/// The first task of the relation.
+		/// </summary>
 		public SimulationTask Task1
 		{
 			get { return this.task1; }
@@ -35,6 +68,9 @@ namespace SimManning
 
 		readonly RelationType relation;
 
+		/// <summary>
+		/// The type of relation between the two tasks (e.g. <see cref="RelationType.Parallel"/>).
+		/// </summary>
 		public RelationType Relation
 		{
 			get { return this.relation; }
@@ -42,6 +78,9 @@ namespace SimManning
 
 		readonly SimulationTask task2;
 
+		/// <summary>
+		/// The second task of the relation.
+		/// </summary>
 		public SimulationTask Task2
 		{
 			get { return task2; }
@@ -54,11 +93,18 @@ namespace SimManning
 			this.task2 = task2;
 		}
 
+		/// <summary>
+		/// Return true if the is no error in <see cref="ErrorMessage"/>, false otherwise.
+		/// </summary>
 		public bool Valid
 		{
 			get { return String.IsNullOrEmpty(this.ErrorMessage); }
 		}
 
+		/// <summary>
+		/// Reports if the relation is valid or not:
+		/// both taks and the relation must be non-null.
+		/// </summary>
 		public string ErrorMessage
 		{
 			get
@@ -153,31 +199,6 @@ namespace SimManning
 			if (this.relation < other.relation) return -1;
 			if (this.relation > other.relation) return 1;
 			return 0;
-		}
-
-		public sealed class SemanticsEqualityComparer : IEqualityComparer<TaskRelation>
-		{//TODO: Try to remove
-			/// <summary>
-			/// Tests if two relations are semantically equal.
-			/// </summary>
-			/// <param name="a">A relation</param>
-			/// <param name="b">Another relation</param>
-			/// <returns>True if the the two relations are semantically equivalent, false otherwise.</returns>
-			/// <remarks>
-			/// All relations that a strictly equal are also semantically equal, but the reverse is not true.
-			/// For instance, {Task1, parallel, Task2} is equivalent to {Task2, parallel, Task1}.
-			/// </remarks>
-			public bool Equals(TaskRelation x, TaskRelation y)
-			{
-				if (x.Relation != y.Relation) return false;
-				if ((x.Relation == RelationType.Parallel) && (x.Task1.Id == y.Task2.Id) && (x.Task2.Id == y.Task1.Id)) return true;
-				return (x.Task1.Id == y.Task1.Id) && (x.Task2.Id == y.Task2.Id);
-			}
-
-			public int GetHashCode(TaskRelation obj)
-			{
-				return obj.GetHashCode();
-			}
 		}
 	}
 }

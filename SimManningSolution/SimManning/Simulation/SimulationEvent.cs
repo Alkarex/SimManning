@@ -5,81 +5,7 @@ using System.Globalization;
 
 namespace SimManning.Simulation
 {
-	/*public abstract class SimulationEvent
-	{
-		public enum MainType
-		{
-			Undefined,
-
-			PhaseEvent,
-
-			TaskEvent
-		}
-
-		protected MainType eventType;
-
-		public MainType EventMainType
-		{
-			get { return this.eventType; }
-		}
-
-		protected SimulationTime time;
-
-		/// <summary>
-		/// Time since t0 beginning of simulation, of this event.
-		/// </summary>
-		public SimulationTime EventTime
-		{
-			get { return this.time; }
-			set { this.time = value; }
-		}
-	}
-
-	public sealed class SimulationPhaseEvent : SimulationEvent
-	{
-		public enum Subtype
-		{
-			Undefined,
-
-			PhaseEnds,
-
-			PhaseArrives
-		}
-
-		Subtype subtype;
-
-		public Subtype EventSubtype
-		{
-			get { return this.subtype; }
-			set { this.subtype = value; }
-		}
-
-		readonly Phase phase;
-
-		public Phase Phase
-		{
-			get { return this.phase; }
-		}
-
-		public SimulationPhaseEvent(Phase phase, SimulationTime time, Subtype eventSubtype)
-		{
-			base.eventType = MainType.PhaseEvent;
-			//task.simulationEvent = this;
-			this.phase = phase;
-			base.time = time;
-			this.subtype = eventSubtype;
-		}
-
-		public SimulationPhaseEvent(Phase phase, TimeSpan time, Subtype eventSubtype)
-			: this(phase, SimulationTime.FromTimeSpan(time), eventSubtype) { }
-
-		public override string ToString()
-		{
-			return String.Format(CultureInfo.InvariantCulture, "{0} {1} {2}", base.time, this.subtype, this.phase);
-		}
-	}*/
-
-	public sealed class SimulationTaskEvent : /*SimulationEvent,*/ IComparable<SimulationTaskEvent>
+	internal sealed class SimulationTaskEvent : IComparable<SimulationTaskEvent>
 	{
 		/// <summary>
 		/// Types of task events, sorted by events that should be processed first.
@@ -120,12 +46,12 @@ namespace SimManning.Simulation
 			TaskAdjourned = 32,
 
 			/// <summary>
-			/// Used when the currently assigned crewmember(s) are given a chance to leave the task to work on something else (or rest).
+			/// Used when the currently assigned <see cref="Crewman"/>(s) are given a chance to leave the task to work on something else (or rest).
 			/// </summary>
 			TaskWorkInterrupted = 64,
 
 			/// <summary>
-			/// After the work has been interrupted, the task continues and the system attempts to assign it to some other or identical crewmember(s).
+			/// After the work has been interrupted, the task continues and the system attempts to assign it to some other or identical <see cref="Crewman"/>(s).
 			/// </summary>
 			TaskWorkContinues = 128,
 
@@ -151,10 +77,22 @@ namespace SimManning.Simulation
 			/// </summary>
 			TaskForNextPhase = 4096,
 
+			/// <summary>
+			/// Meta type for all event types implying that the task will start:
+			/// TaskArrives | TaskAwakes | TaskPlanned | TaskResumes | TaskWorkContinues
+			/// </summary>
 			TaskMetaStart = TaskArrives | TaskAwakes | TaskPlanned | TaskResumes | TaskWorkContinues,
 
+			/// <summary>
+			/// Meta type for all event types implying that the task will stop:
+			/// TaskAdjourned | TaskCancelled | TaskEnds | TaskHibernated | TaskKilled | TaskWorkInterrupted
+			/// </summary>
 			TaskMetaStop = TaskAdjourned | TaskCancelled | TaskEnds | TaskHibernated | TaskKilled | TaskWorkInterrupted,
 
+			/// <summary>
+			/// Meta type for all event types implying that the task is not started yet:
+			/// TaskPlanned | TaskForNextPhase
+			/// </summary>
 			TaskMetaNotStarted = TaskPlanned | TaskForNextPhase
 		}
 
@@ -186,7 +124,6 @@ namespace SimManning.Simulation
 
 		public SimulationTaskEvent(SimulationTask task, SimulationTime time, SubtypeType eventSubtype)
 		{
-			//base.eventType = MainType.TaskEvent;
 			this.task = task;
 			this.time = time;
 			this.subtype = eventSubtype;
@@ -318,7 +255,7 @@ namespace SimManning.Simulation
 		#endregion
 	}
 
-	public sealed class SimulationEventAsapComparer : IComparer<SimulationTaskEvent>
+	internal sealed class SimulationEventAsapComparer : IComparer<SimulationTaskEvent>
 	{
 		const int sign = -1;
 
@@ -363,6 +300,6 @@ namespace SimManning.Simulation
 			return 0;
 		}
 
-		public static readonly SimulationEventAsapComparer Instance = new SimulationEventAsapComparer();
+		internal static readonly SimulationEventAsapComparer Instance = new SimulationEventAsapComparer();
 	}
 }

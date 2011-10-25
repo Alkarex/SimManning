@@ -6,9 +6,22 @@ using System.Xml.Linq;
 
 namespace SimManning.IO
 {
+	/// <summary>
+	/// Basic XML input/output that is compatible with .NET 4.0 Client Profile, .NET 4.5, Metro, Silverlight 4, Mono 2.8+.
+	/// Requires <see cref="System.Xml.Linq"/>.
+	/// A significant part of this basic XML IO is implemented in the respective simulation classes
+	/// such as <see cref="SimulationTask"/>, <see cref="Phase"/>, etc. to allow good inheritence.
+	/// </summary>
 	public static class XmlIO
 	{
+		/// <summary>
+		/// Global string used at the root of XML documents to distinguish different domains.
+		/// </summary>
 		public static string XmlDomain = String.Empty;
+
+		/// <summary>
+		/// Global string used at the root of XML documents to distinguish different versions of the format.
+		/// </summary>
 		public static string XmlDomainVersion = "1.1";
 
 		internal static readonly XmlReaderSettings SimManningXmlReaderSettings = new XmlReaderSettings
@@ -84,22 +97,22 @@ namespace SimManning.IO
 			return new SimulationTime(timeUnit, value == null ? String.Empty : value.Value);
 		}
 
-		public static SimulationTask.TaskInterruptionPolicies ParseTaskInterruptionPolicy(this XAttribute attribute)
+		public static TaskInterruptionPolicies ParseTaskInterruptionPolicy(this XAttribute attribute)
 		{
 			return SimulationTask.ParseTaskInterruptionPolicy(attribute == null ? String.Empty : attribute.Value);
 		}
 
-		public static SimulationTask.PhaseInterruptionPolicies ParsePhaseInterruptionPolicy(this XAttribute attribute)
+		public static PhaseInterruptionPolicies ParsePhaseInterruptionPolicy(this XAttribute attribute)
 		{
 			return SimulationTask.ParsePhaseInterruptionPolicy(attribute == null ? String.Empty : attribute.Value);
 		}
 
-		public static SimulationTask.ScenarioInterruptionPolicies ParseScenarioInterruptionPolicy(this XAttribute attribute)
+		public static ScenarioInterruptionPolicies ParseScenarioInterruptionPolicy(this XAttribute attribute)
 		{
 			return SimulationTask.ParseScenarioInterruptionPolicy(attribute == null ? String.Empty : attribute.Value);
 		}
 
-		public static SimulationTask.RelativeTimeType ParseRelativeTimeType(this XAttribute attribute)
+		public static RelativeTimeType ParseRelativeTimeType(this XAttribute attribute)
 		{
 			return SimulationTask.ParseRelativeTimeType(attribute == null ? String.Empty : attribute.Value);
 		}

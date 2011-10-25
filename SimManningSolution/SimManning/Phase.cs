@@ -6,6 +6,10 @@ using SimManning.IO;
 
 namespace SimManning
 {
+	/// <summary>
+	/// A period, part of a larger <see cref="Scenario"/>,
+	/// during which certain tasks are active while some others are not.
+	/// </summary>
 	public abstract class Phase
 	{
 		int id;
@@ -161,7 +165,7 @@ namespace SimManning
 		}
 
 		#region IO
-		public virtual void LoadFromXml(XElement element, TaskDictionary taskList)
+		protected internal virtual void LoadFromXml(XElement element, TaskDictionary taskList)
 		{
 			this.description = element.Element("description").Value;
 			XAttribute attr;
@@ -180,7 +184,7 @@ namespace SimManning
 			}
 		}
 
-		public virtual void SaveToXml(XmlWriter xmlWriter)
+		protected internal virtual void SaveToXml(XmlWriter xmlWriter)
 		{
 			var needsDeclaration = xmlWriter.WriteState == WriteState.Start;
 			xmlWriter.WriteStartElement("Phase");
@@ -205,7 +209,7 @@ namespace SimManning
 			xmlWriter.WriteEndElement();
 		}
 
-		internal virtual void SaveRefToXml(XmlWriter xmlWriter)
+		protected internal virtual void SaveRefToXml(XmlWriter xmlWriter)
 		{
 			xmlWriter.WriteStartElement("PhaseRef");
 			xmlWriter.WriteAttributeString("refName", this.name);

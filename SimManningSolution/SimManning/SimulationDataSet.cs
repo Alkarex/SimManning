@@ -10,6 +10,9 @@ using System.Diagnostics;
 
 namespace SimManning
 {
+	/// <summary>
+	/// The simulation data-set is the central class for all simulation data input.
+	/// </summary>
 	public abstract class SimulationDataSet
 	{
 		Workplace workplace;
@@ -26,13 +29,6 @@ namespace SimManning
 		{
 			get { return this.taskDictionary; }
 			protected set { this.taskDictionary = value; }
-		}
-
-		readonly Dictionary<int, PhaseType> phaseTypes;
-
-		public IDictionary<int, PhaseType> PhaseTypes
-		{
-			get { return this.phaseTypes; }
 		}
 
 		Scenario scenario;
@@ -82,13 +78,12 @@ namespace SimManning
 			this.taskDictionary = taskDictionary ?? (crew == null ? null : crew.TaskDictionary);
 			this.scenario = scenario;
 			this.crew = crew;
-			this.phaseTypes = new Dictionary<int, PhaseType>();
 			this.assertions = new List<string>();
 		}
 
 		/// <summary>
-		/// Generate <see cref="TaskDictionaryExpanded"/> by expanding the tasks (i.e.creating one instance per crewmember)
-		/// that use <see cref="Task.AutoExpandToAllCrewmen"/>.
+		/// Generate <see cref="TaskDictionaryExpanded"/> by expanding the tasks (i.e.creating one instance per <see cref="Crewman"/>)
+		/// that use <see cref="SimulationTask.AutoExpandToAllCrewmen"/>.
 		/// </summary>
 		/// <remarks>
 		/// No copy of the taskDictionary is made, so only one SimulationDataSet can be used at a time with the same taskDictionary object.
@@ -99,7 +94,7 @@ namespace SimManning
 			this.taskDictionaryExpanded.Clear();
 			var taskRelationsTemp = new List<TaskDictionary.TaskRelationTemp>();
 			var autoId = 5000;
-			Func<int, SimulationTask, SimulationTask.LinkingType, SimulationTask> createTask = this.taskDictionaryExpanded.CreateTask;	//Cache frequent virtual method call
+			Func<int, SimulationTask, TaskLinkingType, SimulationTask> createTask = this.taskDictionaryExpanded.CreateTask;	//Cache frequent virtual method call
 			foreach (var task in this.taskDictionary.Values)
 				if (task.AutoExpandToAllCrewmen)
 				{
@@ -107,7 +102,7 @@ namespace SimManning
 					{
 						while (this.taskDictionaryExpanded.ContainsKey(autoId) || this.taskDictionary.ContainsKey(autoId))
 							autoId++;
-						var autoTask = createTask(autoId, task, SimulationTask.LinkingType.Clear);
+						var autoTask = createTask(autoId, task, TaskLinkingType.Clear);
 						autoTask.AutoExpandToAllCrewmen = false;
 						autoTask.Name = String.Format(CultureInfo.InvariantCulture, "{0} | {1}-{2:00}.{3}", autoTask.Name, task.Id, crewman.Id, crewman.Name);
 						/*foreach (var taskRelation in task.Relations)
@@ -125,7 +120,7 @@ namespace SimManning
 						SimulationTask taskRef;
 						foreach (var phase in this.scenario.Phases)	//Update all TaskRef in phases
 							if (phase.Tasks.TryGetValue(task.Id, out taskRef) && (!phase.Tasks.ContainsKey(autoTask.Id)))
-								phase.Tasks.Add(autoTask.Id, this.taskDictionaryExpanded.CreateTask(autoTask.Id, autoTask, SimulationTask.LinkingType.Linked));
+								phase.Tasks.Add(autoTask.Id, this.taskDictionaryExpanded.CreateTask(autoTask.Id, autoTask, TaskLinkingType.Linked));
 					}
 					autoId = (int)Math.Ceiling(autoId / 50.0) * 50;	//Try to group autoExpanded tasks by groups of 50 Ids
 				}
@@ -133,11 +128,11 @@ namespace SimManning
 			this.taskDictionaryExpanded.AddTaskRelations(taskRelationsTemp);
 			taskRelationsTemp.Clear();
 			//We currently do not make a copy of taskDictionary and its tasks, and we do not want to alter taskDictionary.
-			//Tasks and task relations that are autoAssignToAllCrewMembers will be filtered out during export.
+			//Tasks and task relations that are autoAssignToAllCrewmen will be filtered out during export.
 		}
 
 		/// <summary>
-		/// Clean the additional tasks resulting from the auto-expansion of all tasks with attribute Task.autoAssignToAllCrewMembers set to true.
+		/// Clean the additional tasks resulting from the auto-expansion of all tasks with attribute  <see cref="SimulationTask.AutoExpandToAllCrewmen"/> set to true.
 		/// </summary>
 		/// <remarks>
 		/// It is important to call this method before using the rest of the data (e.g. taskDictionary, crew, phases) in another context.
@@ -148,7 +143,7 @@ namespace SimManning
 			foreach (var autoTask in this.taskDictionaryExpanded.Values.Where(t => t.IsAutoExpanded))
 			{
 				autoTask.Name = String.Format(CultureInfo.InvariantCulture, "!Invalid reference! {0}", autoTask.Name);
-				autoTask.PhaseInterruptionPolicy = SimulationTask.PhaseInterruptionPolicies.Undefined;	//Make invalid (just in case we would have forgotten a reference to it)
+				autoTask.PhaseInterruptionPolicy = PhaseInterruptionPolicies.Undefined;	//Make invalid (just in case we would have forgotten a reference to it)
 				/*foreach (var autoTaskRelation in autoTask.Relations)
 				{
 					var task2 = autoTaskRelation.Task1.Id == autoTask.Id ? autoTaskRelation.Task2 : autoTaskRelation.Task1;
@@ -198,25 +193,6 @@ namespace SimManning
 		{
 			foreach (var crewman in this.crew.Values)
 				crewman.PrepareForNextReplication();
-		}
-
-		/// <summary>
-		/// To be used when the list of phase types (<see cref="PhaseTypes"/>) is needed before running the simulation.
-		/// </summary>
-		/// <param name="phaseTypeSubCodeLevel">A code level, to specify the level of details</param>
-		public void PreparePhaseTypes(byte phaseTypeSubCodeLevel)
-		{
-			this.phaseTypes.Clear();
-			foreach (var phase in this.scenario.Phases)
-			{
-				var phaseTypeCode = phase.PhaseType.SubCode(phaseTypeSubCodeLevel);
-				PhaseType phaseType;
-				if (!this.phaseTypes.TryGetValue(phaseTypeCode, out phaseType))
-				{
-					phaseType = new PhaseType(phaseTypeCode);
-					this.phaseTypes.Add(phaseTypeCode, phaseType);
-				}
-			}
 		}
 
 		public virtual bool Identical(SimulationDataSet simulationDataSet2)
@@ -279,11 +255,9 @@ namespace SimManning
 		}
 
 		#region IO
-		//protected abstract void SaveToSingleXmlOverride(XmlWriter xmlWriter);
-		
 		public void SaveToSingleXml(XmlWriter xmlWriter)
 		{
-			xmlWriter.WriteStartElement("Dataset");
+			xmlWriter.WriteStartElement("DataSet");
 			xmlWriter.WriteAttributeString("domain", XmlIO.XmlDomain);
 			xmlWriter.WriteAttributeString("version", XmlIO.XmlDomainVersion);
 			this.workplace.SaveToXml(xmlWriter);
@@ -295,7 +269,6 @@ namespace SimManning
 			xmlWriter.WriteStartElement("Assertions");
 			foreach (var assertion in this.assertions)
 				xmlWriter.WriteElementString("Assertion", assertion);
-			//SaveToSingleXmlOverride(xmlWriter);
 			xmlWriter.WriteEndElement();
 			xmlWriter.WriteEndElement();
 		}
