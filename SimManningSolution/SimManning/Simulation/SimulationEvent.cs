@@ -73,9 +73,14 @@ namespace SimManning.Simulation
 			TaskPlanned = 2048,	//The tasks that are planned are processed last
 
 			/// <summary>
+			/// Used for a task waiting for some other tasks to be performed in parallel.
+			/// </summary>
+			TaskWaitingParallel = 4096,
+
+			/// <summary>
 			/// Used to set an occurrence of a task to start when the next phase arrives.
 			/// </summary>
-			TaskForNextPhase = 4096,
+			TaskForNextPhase = 8192,
 
 			/// <summary>
 			/// Meta type for all event types implying that the task will start:
@@ -91,9 +96,9 @@ namespace SimManning.Simulation
 
 			/// <summary>
 			/// Meta type for all event types implying that the task is not started yet:
-			/// TaskPlanned | TaskForNextPhase
+			/// TaskPlanned | TaskWaitingParallel | TaskForNextPhase
 			/// </summary>
-			TaskMetaNotStarted = TaskPlanned | TaskForNextPhase
+			TaskMetaNotStarted = TaskPlanned | TaskWaitingParallel | TaskForNextPhase
 		}
 
 		public SubtypeType subtype;	//Hot path
@@ -143,7 +148,6 @@ namespace SimManning.Simulation
 		/// <param name="other">Non-null other SimulationTaskEvent</param>
 		public int CompareTo(SimulationTaskEvent other)
 		{//Hot path function #1!
-			if (!SimManningCommon.InternalEngineAllowed) throw new NotImplementedException(SimManningCommon.ErrorMessageInternalEngineNotAllowed);
 			//if (Object.ReferenceEquals(other, null)) return -9;
 			Debug.Assert(!Object.ReferenceEquals(other, null), "Simulation events must not be null!");
 			{//int result = base.time.CompareTo(other.time);	//Too expensive, so inlining below
