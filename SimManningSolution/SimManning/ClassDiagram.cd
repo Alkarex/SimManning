@@ -1,5 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Comment CommentText="SimManning library for discrete-event simulation of manning&#xD;&#xA;&#xD;&#xA;Alexandre Alapetite, http://alexandre.alapetite.fr&#xD;&#xA;Technical University of Denmark, http://www.man.dtu.dk&#xD;&#xA;&#xD;&#xA;Version 1.3, 2012-11-27">
+    <Position X="10.529" Y="7.836" Height="1.142" Width="4.607" />
+  </Comment>
   <Class Name="SimManning.Crew">
     <Position X="7.75" Y="0.5" Width="1.75" />
     <TypeIdentifier>
@@ -85,6 +88,7 @@
       <Field Name="autoExpandToAllCrewmen" Hidden="true" />
       <Field Name="crewmanTypes" Hidden="true" />
       <Field Name="description" Hidden="true" />
+      <Field Name="duplicatesPolicy" Hidden="true" />
       <Field Name="enabled" Hidden="true" />
       <Field Name="id" Hidden="true" />
       <Field Name="interruptionErrorPolicy" Hidden="true" />
@@ -93,7 +97,6 @@
       <Field Name="lastProcessTime" Hidden="true" />
       <Field Name="masterTasks" Hidden="true" />
       <Field Name="name" Hidden="true" />
-      <Field Name="noDuplicate" Hidden="true" />
       <Field Name="numberOfCrewmenNeeded" Hidden="true" />
       <Field Name="onHolidays" Hidden="true" />
       <Field Name="parallelTasks" Hidden="true" />
@@ -115,50 +118,8 @@
       <Compartment Name="Private" Collapsed="true" />
       <Compartment Name="Nested Types" Collapsed="false" />
     </Compartments>
-    <NestedTypes>
-      <Enum Name="SimManning.SimulationTask.RelativeDateType">
-        <TypeIdentifier>
-          <NewMemberFileName>SimulationTask.Enums.cs</NewMemberFileName>
-        </TypeIdentifier>
-      </Enum>
-      <Enum Name="SimManning.SimulationTask.RelativeTimeType">
-        <TypeIdentifier>
-          <NewMemberFileName>SimulationTask.Enums.cs</NewMemberFileName>
-        </TypeIdentifier>
-      </Enum>
-      <Enum Name="SimManning.SimulationTask.TaskInterruptionPolicies" Collapsed="true">
-        <TypeIdentifier>
-          <NewMemberFileName>SimulationTask.Enums.cs</NewMemberFileName>
-        </TypeIdentifier>
-      </Enum>
-      <Enum Name="SimManning.SimulationTask.PhaseInterruptionPolicies">
-        <TypeIdentifier>
-          <NewMemberFileName>SimulationTask.Enums.cs</NewMemberFileName>
-        </TypeIdentifier>
-      </Enum>
-      <Enum Name="SimManning.SimulationTask.ScenarioInterruptionPolicies">
-        <TypeIdentifier>
-          <NewMemberFileName>SimulationTask.Enums.cs</NewMemberFileName>
-        </TypeIdentifier>
-      </Enum>
-      <Enum Name="SimManning.SimulationTask.InterruptionTypes">
-        <TypeIdentifier>
-          <NewMemberFileName>SimulationTask.Enums.cs</NewMemberFileName>
-        </TypeIdentifier>
-      </Enum>
-      <Enum Name="SimManning.SimulationTask.StandardType">
-        <TypeIdentifier>
-          <NewMemberFileName>SimulationTask.Enums.cs</NewMemberFileName>
-        </TypeIdentifier>
-      </Enum>
-      <Enum Name="SimManning.SimulationTask.LinkingType" Collapsed="true">
-        <TypeIdentifier>
-          <NewMemberFileName>SimulationTask.Enums.cs</NewMemberFileName>
-        </TypeIdentifier>
-      </Enum>
-    </NestedTypes>
     <TypeIdentifier>
-      <HashCode>A0CLQAhIDlSrZYqEMAirKEwAMS5MBQA8glwINEFRmxg=</HashCode>
+      <HashCode>A0CLQAhIDlSrZY6EMAirKEwAMS5MBQA8glwYNEFRmwg=</HashCode>
       <FileName>SimulationTask.cs</FileName>
     </TypeIdentifier>
   </Class>
@@ -399,7 +360,7 @@
       </Delegate>
     </NestedTypes>
     <TypeIdentifier>
-      <HashCode>sAAAAZAJEIIQgiZAABBQCoFQIAABCCAAgJJAACABAEI=</HashCode>
+      <HashCode>sAAAAZAJEIIQgiZAABBQCoFQIAABCCAAwJJQECABAEY=</HashCode>
       <FileName>Simulation\Simulator.cs</FileName>
     </TypeIdentifier>
   </Class>
@@ -431,12 +392,6 @@
           <NewMemberFileName>TaskRelation.cs</NewMemberFileName>
         </TypeIdentifier>
       </Enum>
-      <Class Name="SimManning.TaskRelation.SemanticsEqualityComparer" Collapsed="true">
-        <TypeIdentifier>
-          <NewMemberFileName>TaskRelation.cs</NewMemberFileName>
-        </TypeIdentifier>
-        <Lollipop Position="0.2" />
-      </Class>
     </NestedTypes>
     <TypeIdentifier>
       <HashCode>AQAAAAAAAAAAAAQAgACACgAAAAgIAIAACAAABQAAByE=</HashCode>
@@ -471,6 +426,48 @@
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAQAAAAQAAAAAAAAAAAKAAEQAABAAAAACE=</HashCode>
       <FileName>TimeUnit.cs</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="SimManning.TaskInterruptionPolicies">
+    <Position X="8" Y="9.5" Width="2.25" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAASACAAIAAAAAAAAAAAAAACAAEAAAAAAAAACA=</HashCode>
+      <FileName>SimulationTask.Enums.cs</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="SimManning.TaskDuplicatesPolicy">
+    <Position X="8" Y="11.75" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAgAAAAAQABAAAAAAAAAAAAAACAAAAAAACA=</HashCode>
+      <FileName>SimulationTask.Enums.cs</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="SimManning.ScenarioInterruptionPolicies">
+    <Position X="10.5" Y="9.5" Width="2.25" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAQACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACA=</HashCode>
+      <FileName>SimulationTask.Enums.cs</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="SimManning.PhaseInterruptionPolicies">
+    <Position X="10.5" Y="11" Width="2.25" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAQECAAIIAAAAEAAAAAAAACAAAAQAAAgAAACA=</HashCode>
+      <FileName>SimulationTask.Enums.cs</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="SimManning.RelativeDateType">
+    <Position X="13" Y="9.5" Width="2.25" />
+    <TypeIdentifier>
+      <HashCode>AAABAAAAAAAAAAAAAAAAAAAAAIAAAAwAAABAEAAAAiE=</HashCode>
+      <FileName>SimulationTask.Enums.cs</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="SimManning.RelativeTimeType">
+    <Position X="13" Y="12" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAABACA=</HashCode>
+      <FileName>SimulationTask.Enums.cs</FileName>
     </TypeIdentifier>
   </Enum>
   <Font Name="Segoe UI" Size="9" />

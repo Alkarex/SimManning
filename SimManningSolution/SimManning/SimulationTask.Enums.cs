@@ -242,6 +242,7 @@ namespace SimManning
 	/// <summary>
 	/// Actions to undertake when a task is interrupted.
 	/// </summary>
+	[Obsolete("Not used/implemented yet!")]
 	[Flags]
 	public enum InterruptionTypes
 	{
