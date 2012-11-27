@@ -1146,7 +1146,7 @@ namespace SimManning.Simulation
 		/// Check if all the needed parallel tasks have arrived, and if yes, resume the waiting parallel tasks,
 		/// and if not, put aside the new parallel task.
 		/// </summary>
-		/// <param name="task">A task</param>
+		/// <param name="simulationEvent">The event to process</param>
 		/// <returns>true if all needed parallel tasks have arrived, false otherwise.</returns>
 		bool ParallelReady(SimulationTaskEvent simulationEvent)
 		{
