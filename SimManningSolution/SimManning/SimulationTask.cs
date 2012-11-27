@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Diagnostics.Contracts;
 using System.Globalization;
 using System.Linq;
 using System.Text;
-using System.Xml;
-using System.Xml.Linq;
-using SimManning.IO;
 
 namespace SimManning
 {
@@ -283,34 +280,40 @@ namespace SimManning
 		/// </summary>
 		public SimulationTime Rotation;
 
-		bool noDuplicate;
+		TaskDuplicatesPolicy duplicatesPolicy;
 
-		public bool NoDuplicate
+		/// <summary>
+		/// Policy to handle duplicates, i.e. when a new instance of a task is created
+		/// when the previous instance(s) is not finished.
+		/// </summary>
+		public TaskDuplicatesPolicy DuplicatesPolicy
 		{
-			get
-			{
-				return this.noDuplicate;
-			}
-			set
-			{
-				this.noDuplicate = value;
-			}
+			get { return this.duplicatesPolicy; }
+			set { this.duplicatesPolicy = value; }
 		}
 
+		[Obsolete("Use DuplicatesPolicy instead!")]
+		public bool NoDuplicate
+		{
+			get { return this.duplicatesPolicy != TaskDuplicatesPolicy.KeepDuplicates; }
+			set { this.duplicatesPolicy = value ? TaskDuplicatesPolicy.KillOldDuplicates : TaskDuplicatesPolicy.KeepDuplicates; }
+		}
+
+		/*[Obsolete("Use DuplicatesPolicy instead!")]
 		public bool NeedsDuplicateManagement
 		{
 			get
 			{
-				return this.noDuplicate ||
+				return this.NoDuplicate ||
 					((this.numberOfCrewmenNeeded <= 1) &&	//No optimisation currently for tasks with more than 1 crewman needed
 						((this.taskInterruptionPolicy & (TaskInterruptionPolicies.ContinueOrResumeWithError | TaskInterruptionPolicies.ContinueOrResumeWithoutError)) == this.taskInterruptionPolicy));
 			}
-		}
+		}*/
 
 		readonly Dictionary<int, SimulationTask> parallelTasks;
 
 		public Dictionary<int, SimulationTask> ParallelTasks
-		{
+		{//TODO: When using time distribution, set the same values for all parallel tasks
 			get { return this.parallelTasks; }
 		}
 
@@ -326,6 +329,12 @@ namespace SimManning
 		public Dictionary<int, SimulationTask> MasterTasks
 		{
 			get { return this.masterTasks; }
+		}
+
+		[ContractInvariantMethod]
+		void ObjectInvariant()
+		{
+			Contract.Invariant(this.numberOfCrewmenNeeded >= 0);
 		}
 
 		protected SimulationTask(int id)
@@ -424,7 +433,7 @@ namespace SimManning
 			this.numberOfCrewmenNeeded = this.refTask.numberOfCrewmenNeeded;
 			this.Rotation = this.refTask.Rotation;
 			this.description = this.refTask.description;
-			this.noDuplicate = this.refTask.noDuplicate;
+			this.duplicatesPolicy = this.refTask.duplicatesPolicy;
 		}
 
 		public SimulationTask RootTask
@@ -442,98 +451,6 @@ namespace SimManning
 			}
 		}
 
-		/*/// <summary>
-		/// Remove all relations with the task of the specified ID.
-		/// </summary>
-		/// <param name="task2Id">The ID of the task with which to remove all relations</param>
-		public void RemoveRelation(int task2Id)
-		{//TODO: Update task2. //TODO: Move to TaskDictionary?
-			this.parallelTasks.Remove(task2Id);
-			this.slaveTasks.Remove(task2Id);
-			this.masterTasks.Remove(task2Id);
-		}*/
-
-		#region Task relation shortcuts
-		/*public IEnumerable<Task> ParallelTasks
-		{
-			get
-			{
-				return this.relations.Where(r => r.Relation == TaskRelation.RelationType.Parallel).Select(r => r.Task1.id == this.id ? r.Task2 : r.Task1);
-			}
-			set
-			{
-				foreach (var task in this.ParallelTasks)
-					for (var i = task.relations.Count - 1; i >= 0; i--)
-					{
-						var relation = task.relations[i];
-						if ((relation.Relation == TaskRelation.RelationType.Parallel) &&
-							((relation.Task1.id == this.id) || (relation.Task2.id == this.id)))
-							task.relations.RemoveAt(i);
-					}
-				this.relations.RemoveAll(r => r.Relation == TaskRelation.RelationType.Parallel);
-				if (value != null)
-					foreach (var task in value)
-					{
-						var relation = new TaskRelation(this, TaskRelation.RelationType.Parallel, task);
-						this.relations.Add(relation);
-						task.relations.Add(relation);
-					}
-			}
-		}
-
-		public IEnumerable<Task> SlaveTasks
-		{
-			get
-			{
-				return this.relations.Where(r => (r.Relation == TaskRelation.RelationType.Slave) && (r.Task2.id != this.id)).Select(r => r.Task2);
-			}
-			set
-			{
-				foreach (var task in this.SlaveTasks)
-					for (var i = task.relations.Count - 1; i >= 0; i--)
-					{
-						var relation = task.relations[i];
-						if ((relation.Relation == TaskRelation.RelationType.Slave) && (relation.Task1.id == this.id))
-							task.relations.RemoveAt(i);
-					}
-				this.relations.RemoveAll(r => (r.Relation == TaskRelation.RelationType.Slave) && (r.Task2.id != this.id));
-				if (value != null)
-					foreach (var task in value)
-					{
-						var relation = new TaskRelation(this, TaskRelation.RelationType.Slave, task);
-						this.relations.Add(relation);
-						task.relations.Add(relation);
-					}
-			}
-		}
-
-		public IEnumerable<Task> MasterTasks
-		{//TODO: Optimise hot path
-			get
-			{
-				return this.relations.Where(r => (r.Relation == TaskRelation.RelationType.Slave) && (r.Task1.id != this.id)).Select(r => r.Task1);
-			}
-			set
-			{
-				foreach (var task in this.MasterTasks)
-					for (var i = task.relations.Count - 1; i >= 0; i--)
-					{
-						var relation = task.relations[i];
-						if ((relation.Relation == TaskRelation.RelationType.Slave) && (relation.Task2.id == this.id))
-							task.relations.RemoveAt(i);
-					}
-				this.relations.RemoveAll(r => (r.Relation == TaskRelation.RelationType.Slave) && (r.Task1.id != this.id));
-				if (value != null)
-					foreach (var task in value)
-					{
-						var relation = new TaskRelation(task, TaskRelation.RelationType.Slave, this);
-						this.relations.Add(relation);
-						task.relations.Add(relation);
-					}
-			}
-		}*/
-		#endregion
-
 		public virtual bool Identical(SimulationTask task2)
 		{
 			if ((task2 == null) || (this.id != task2.id) || (this.name != task2.name) ||	//Do not compare description
@@ -541,7 +458,7 @@ namespace SimManning
 				/*(this.systemTask != task2.systemTask) ||*/ (this.autoExpandToAllCrewmen != task2.autoExpandToAllCrewmen) ||
 				(this.taskInterruptionPolicy != task2.taskInterruptionPolicy) || (this.phaseInterruptionPolicy != task2.phaseInterruptionPolicy) || (this.scenarioInterruptionPolicy != task2.scenarioInterruptionPolicy) ||
 				(this.interruptionErrorPolicy != task2.interruptionErrorPolicy) ||
-				(this.noDuplicate != task2.noDuplicate) || (this.Rotation != task2.Rotation) || (this.numberOfCrewmenNeeded != task2.numberOfCrewmenNeeded) ||
+				(this.duplicatesPolicy != task2.duplicatesPolicy) || (this.Rotation != task2.Rotation) || (this.numberOfCrewmenNeeded != task2.numberOfCrewmenNeeded) ||
 				(this.onHolidays != task2.onHolidays) || (this.priority != task2.priority) || (this.relativeDate != task2.relativeDate) ||
 				(this.taskType != task2.taskType) || (this.relativeTime != task2.relativeTime) ||
 				((!((this.StartDate.Unit == TimeUnit.Undefined) && (task2.StartDate.Unit == TimeUnit.Undefined))) && (this.StartDate != task2.StartDate)) ||
@@ -644,7 +561,7 @@ namespace SimManning
 				this.autoExpandToAllCrewmen = false;
 				this.numberOfCrewmenNeeded = 0;
 				this.Rotation = SimulationTime.Zero;
-				this.noDuplicate = true;
+				this.duplicatesPolicy = TaskDuplicatesPolicy.MergeDuplicates;
 				this.masterTasks.Clear();
 				this.parallelTasks.Clear();
 				this.priority = 700;
@@ -656,7 +573,7 @@ namespace SimManning
 				{
 					this.StartDate = TimeDistribution.Zero;
 					this.Duration = new TimeDistribution(SimulationTime.ArbitraryLargeDuration);
-					this.noDuplicate = true;
+					this.duplicatesPolicy = TaskDuplicatesPolicy.MergeDuplicates;
 					this.parallelTasks.Clear();
 					this.phaseTypes.Clear();
 				}
@@ -744,9 +661,6 @@ namespace SimManning
 				if ((this.relativeDate == RelativeDateType.AbsoluteStartWeekDay) &&
 					(this.StartDate.MaxPossible.Ticks > SimulationTime.TicksPerWeek))
 					return "Invalid week day number for start date!";
-				if (((this.relativeDate == RelativeDateType.RelativeStartFromPreviousStart) || (this.relativeDate == RelativeDateType.Frequency)) &&
-					(this.StartDate.Average < this.Duration.Average))
-					return "Tasks using frequency, or relative to the start of the previous occurence, must have an average duration lower than the average time since the last occurence!";
 				if ((this.relativeTime == RelativeTimeType.AbsoluteStopTime) && (this.Duration.MaxPossible > SimulationTime.DayTimeOffset(this.DailyHourStart, this.DailyHourEnd)))
 					return "Tasks using an absolute stop time must last less than than their daily time window!";
 				if (this.autoExpandToAllCrewmen && (this.numberOfCrewmenNeeded != 1))
@@ -762,7 +676,7 @@ namespace SimManning
 					if ((this.phaseInterruptionPolicy != PhaseInterruptionPolicies.WholePhase) &&
 						(this.Duration.MaxPossible > Phase.ArbitraryMaxDuration))
 						return String.Format(CultureInfo.InvariantCulture, "The duration of this task must not exceed {0} days!", Phase.ArbitraryMaxDuration.TotalDays);
-					if ((!this.noDuplicate) && (this.parallelTasks.Count > 0))
+					if ((!this.NoDuplicate) && (this.parallelTasks.Count > 0))
 						return "Parallel tasks must disallow duplicates!";
 				}
 				/*foreach (var relation in this.relations)
@@ -780,6 +694,9 @@ namespace SimManning
 			get
 			{
 				var result = String.Empty;
+				if (((this.relativeDate == RelativeDateType.RelativeStartFromPreviousStart) || (this.relativeDate == RelativeDateType.Frequency)) &&
+					(this.StartDate.Average < this.Duration.Average))
+					return "Tasks using frequency, or relative to the start of the previous occurence, should have an average duration lower than the average time since the last occurence!";
 				foreach (var task2 in this.parallelTasks.Values)
 				{
 					if ((this.onHolidays != task2.onHolidays) || (this.priority != task2.priority) ||
@@ -828,424 +745,5 @@ namespace SimManning
 				return stringBuilder.ToString();
 			}
 		}
-
-		#region IO
-		protected internal virtual bool LoadFromXml(XElement xmlTask)
-		{//TODO: Error messages
-			XAttribute attr;
-			this.name = (attr = xmlTask.Attribute("name")) == null ? String.Empty : attr.Value;
-			this.TaskType = xmlTask.Attribute("taskType").ParseInteger();
-			//this.systemTask = (attr = xmlTask.Attribute("systemTask")) == null ? false : attr.Value.ParseBoolean();
-			this.autoExpandToAllCrewmen = (attr = xmlTask.Attribute("autoAssignToAllCrewMembers")) == null ? false : attr.Value.ParseBoolean();
-			this.RelativeDate = (attr = xmlTask.Attribute("relativeDate")) == null ? RelativeDateType.Undefined : SimulationTask.ParseRelativeDateType(attr.Value);
-			this.StartDate = XmlIO.ParseTimeDistribution(xmlTask.Attribute("startDateUnit"),
-				xmlTask.Attribute("startDateMin"), xmlTask.Attribute("startDateMean"), xmlTask.Attribute("startDateMax"));
-			if (this.relativeDate == RelativeDateType.Frequency)
-				this.DateOffset = XmlIO.ParseTimeDistribution(xmlTask.Attribute("dateOffsetUnit"),
-					xmlTask.Attribute("dateOffsetMin"), xmlTask.Attribute("dateOffsetMean"), xmlTask.Attribute("dateOffsetMax"));
-			this.relativeTime = xmlTask.Attribute("relativeTime").ParseRelativeTimeType();
-			this.DailyHourStart = xmlTask.Attribute("workingHourStart").ParseSimulationTime(TimeUnit.Hours);
-			this.DailyHourEnd = xmlTask.Attribute("workingHourEnd").ParseSimulationTime(TimeUnit.Hours);
-			this.onHolidays = xmlTask.Attribute("onHolidays").ParseBoolean();
-			this.enabled = (attr = xmlTask.Attribute("enabled")) == null ? true : attr.ParseBoolean();
-			this.Duration = XmlIO.ParseTimeDistribution(xmlTask.Attribute("taskDurationUnit"),
-				xmlTask.Attribute("taskDurationMin"), xmlTask.Attribute("taskDurationMean"), xmlTask.Attribute("taskDurationMax"));
-			attr = xmlTask.Attribute("taskInterruptionPolicy");
-			if (attr == null) this.taskInterruptionPolicy = TaskInterruptionPolicies.ContinueOrResumeWithoutError;	//Back compatibility behaviour
-			else this.taskInterruptionPolicy = attr.ParseTaskInterruptionPolicy();
-			attr = xmlTask.Attribute("phaseInterruptionPolicy");
-			if (attr == null)
-			{
-				attr = xmlTask.Attribute("interruptibility");	//Backward compatibility
-				if (attr == null) attr = xmlTask.Attribute("interruptability");	//Spelling compatibility
-			}
-			this.phaseInterruptionPolicy = attr.ParsePhaseInterruptionPolicy();
-			attr = xmlTask.Attribute("scenarioInterruptionPolicy");
-			if (attr == null) this.scenarioInterruptionPolicy = ScenarioInterruptionPolicies.DropWithoutError;	//Back compatibility behaviour
-			else this.scenarioInterruptionPolicy = attr.ParseScenarioInterruptionPolicy();
-			this.priority = xmlTask.Attribute("priority").ParseInteger();
-			this.numberOfCrewmenNeeded = xmlTask.Attribute("numberOfCrewMembersNeeded").ParseInteger();
-			if ((attr = xmlTask.Attribute("rotation")) != null)
-				this.Rotation = new SimulationTime(TimeUnit.Hours, Math.Min(24.0, Math.Max(0.0, attr.Value.ParseReal())));
-			else if ((attr = xmlTask.Attribute("isRotating")) != null)	//Compatibility
-				this.Rotation = new SimulationTime(TimeUnit.Hours, attr.Value.ParseBoolean() ? 6 : 0);	//Previously hard-coded to 6-hour rotation
-			else this.Rotation = SimulationTime.Zero;
-			XElement elem;
-			this.description = (elem = xmlTask.Element("description")) == null ? String.Empty : elem.Value;
-			elem = xmlTask.Element("phaseTypes");
-			if (elem != null)
-				foreach (var phaseTypeRef in elem.Elements("PhaseTypeRef"))
-				{
-					attr = phaseTypeRef.Attribute("refCode");
-					if (attr != null) this.phaseTypes.Add(attr.Value.ParseInteger());
-				}
-			elem = xmlTask.Element("crewMemberTypes");
-			if (elem != null)
-				foreach (var phaseTypeRef in elem.Elements("CrewMemberTypeRef"))
-				{
-					attr = phaseTypeRef.Attribute("refCode");
-					if (attr != null) this.crewmanTypes.Add(attr.Value.ParseInteger());
-				}
-			this.noDuplicate = (attr = xmlTask.Attribute("noDuplicate")) == null ? false : attr.Value.ParseBoolean();
-			//Task relations are loaded by TaskDictionary
-			return true;
-		}
-
-		protected internal virtual void SaveToXml(XmlWriter xmlWriter)
-		{
-			//if (this.systemTask) return;	//Do not save system tasks
-			xmlWriter.WriteStartElement("Task");
-			xmlWriter.WriteAttributeString("id", this.id.ToString(CultureInfo.InvariantCulture));
-			xmlWriter.WriteAttributeString("name", this.name);
-			xmlWriter.WriteAttributeString("taskType", this.taskType.ToString(CultureInfo.InvariantCulture));
-			//xmlWriter.WriteAttributeString("systemTask", this.systemTask.ToString(CultureInfo.InvariantCulture));
-			xmlWriter.WriteAttributeString("autoAssignToAllCrewMembers", this.autoExpandToAllCrewmen.ToString());
-			xmlWriter.WriteAttributeString("relativeDate", this.relativeDate.ToString());
-			xmlWriter.WriteAttributeString("startDateUnit", this.StartDate.Unit.ToString());
-			xmlWriter.WriteAttributeString("startDateMin", this.StartDate.Min.ToStringRaw());
-			xmlWriter.WriteAttributeString("startDateMean", this.StartDate.Mode.ToStringRaw());
-			xmlWriter.WriteAttributeString("startDateMax", this.StartDate.Max.ToStringRaw());
-			if ((this.relativeDate == RelativeDateType.Frequency) && (this.DateOffset.Unit != TimeUnit.Undefined))
-			{
-				xmlWriter.WriteAttributeString("dateOffsetUnit", this.DateOffset.Unit.ToString());
-				xmlWriter.WriteAttributeString("dateOffsetMin", this.DateOffset.Min.ToStringRaw());
-				xmlWriter.WriteAttributeString("dateOffsetMean", this.DateOffset.Mode.ToStringRaw());
-				xmlWriter.WriteAttributeString("dateOffsetMax", this.DateOffset.Max.ToStringRaw());
-			}
-			xmlWriter.WriteAttributeString("relativeTime", this.relativeTime.ToString());
-			xmlWriter.WriteAttributeString("workingHourStart", this.DailyHourStart.ToStringRaw());
-			xmlWriter.WriteAttributeString("workingHourEnd", this.DailyHourEnd.ToStringRaw());
-			xmlWriter.WriteAttributeString("onHolidays", this.onHolidays.ToString());
-			if (!this.enabled)
-				xmlWriter.WriteAttributeString("enabled", this.enabled.ToString());
-			xmlWriter.WriteAttributeString("taskDurationUnit", this.Duration.Unit.ToString());
-			xmlWriter.WriteAttributeString("taskDurationMin", this.Duration.Min.ToStringRaw());
-			xmlWriter.WriteAttributeString("taskDurationMean", this.Duration.Mode.ToStringRaw());
-			xmlWriter.WriteAttributeString("taskDurationMax", this.Duration.Max.ToStringRaw());
-			//xmlWriter.WriteAttributeString("frequencyUnit", task.FrequencyUnit.ToString());
-			//xmlWriter.WriteAttributeString("frequency", task.Frequency.ToTimeEntry(this.frequencyUnit));
-			//xmlWriter.WriteAttributeString("occurrences", task.Occurrences.ToString());
-			xmlWriter.WriteAttributeString("taskInterruptionPolicy", this.taskInterruptionPolicy.ToString());
-			xmlWriter.WriteAttributeString("phaseInterruptionPolicy", this.phaseInterruptionPolicy.ToString());
-			xmlWriter.WriteAttributeString("scenarioInterruptionPolicy", this.scenarioInterruptionPolicy.ToString());
-			xmlWriter.WriteAttributeString("interruptionErrorPolicy", this.interruptionErrorPolicy.ToString());
-			xmlWriter.WriteAttributeString("priority", this.priority.ToString(CultureInfo.InvariantCulture));
-			xmlWriter.WriteAttributeString("numberOfCrewMembersNeeded", this.numberOfCrewmenNeeded.ToString(CultureInfo.InvariantCulture));
-			xmlWriter.WriteAttributeString("rotation", this.Rotation.TotalHours.ToString(CultureInfo.InvariantCulture));
-			xmlWriter.WriteAttributeString("noDuplicate", this.noDuplicate.ToString());
-			if (!String.IsNullOrWhiteSpace(this.description))
-				xmlWriter.WriteElementString("description", this.description);
-			xmlWriter.WriteStartElement("phaseTypes");
-			foreach (var phaseType in this.phaseTypes)
-			{
-				xmlWriter.WriteStartElement("PhaseTypeRef");
-				xmlWriter.WriteAttributeString("refCode", phaseType.ToString(CultureInfo.InvariantCulture));
-				xmlWriter.WriteEndElement();
-			}
-			xmlWriter.WriteEndElement();
-			xmlWriter.WriteStartElement("crewMemberTypes");
-			foreach (var crewmanType in this.crewmanTypes)
-			{
-				xmlWriter.WriteStartElement("CrewMemberTypeRef");
-				xmlWriter.WriteAttributeString("refCode", crewmanType.ToString(CultureInfo.InvariantCulture));
-				xmlWriter.WriteEndElement();
-			}
-			xmlWriter.WriteEndElement();
-			xmlWriter.WriteStartElement("taskRelations");
-			//var relStr = ((int)TaskRelation.RelationType.Parallel).ToString(CultureInfo.InvariantCulture);
-			var relStr = TaskRelation.RelationType.Parallel.ToString();
-			foreach (var taskId2 in this.parallelTasks.Keys)
-			{
-				xmlWriter.WriteStartElement("TaskRef");
-				xmlWriter.WriteAttributeString("rel", relStr);
-				xmlWriter.WriteAttributeString("refId", taskId2.ToString(CultureInfo.InvariantCulture));
-				xmlWriter.WriteEndElement();
-			}
-			//relStr = ((int)TaskRelation.RelationType.Slave).ToString(CultureInfo.InvariantCulture);
-			relStr = TaskRelation.RelationType.Slave.ToString();
-			foreach (var taskId2 in this.slaveTasks.Keys)
-			{
-				xmlWriter.WriteStartElement("TaskRef");
-				xmlWriter.WriteAttributeString("rel", relStr);
-				xmlWriter.WriteAttributeString("refId", taskId2.ToString(CultureInfo.InvariantCulture));
-				xmlWriter.WriteEndElement();
-			}
-			//relStr = ((int)TaskRelation.RelationType.Master).ToString(CultureInfo.InvariantCulture);
-			relStr = TaskRelation.RelationType.Master.ToString();
-			foreach (var taskId2 in this.masterTasks.Keys)
-			{
-				xmlWriter.WriteStartElement("TaskRef");
-				xmlWriter.WriteAttributeString("rel", relStr);
-				xmlWriter.WriteAttributeString("refId", taskId2.ToString(CultureInfo.InvariantCulture));
-				xmlWriter.WriteEndElement();
-			}
-			xmlWriter.WriteEndElement();
-			xmlWriter.WriteEndElement();
-		}
-
-		protected internal virtual bool LoadRefFromXml(XElement xmlTaskRef)
-		{
-			XAttribute attr;
-			var timeUnit = (attr = xmlTaskRef.Attribute("startDateUnit")) == null ? this.refTask.StartDate.Unit : attr.Value.ParseTimeUnit();
-			this.StartDate = new TimeDistribution(timeUnit,
-				(attr = xmlTaskRef.Attribute("startDateMin")) == null ? this.refTask.StartDate.Min : new SimulationTime(timeUnit, attr.Value),
-				(attr = xmlTaskRef.Attribute("startDateMean")) == null ? this.refTask.StartDate.Mode : new SimulationTime(timeUnit, attr.Value),
-				(attr = xmlTaskRef.Attribute("startDateMax")) == null ? this.refTask.StartDate.Max : new SimulationTime(timeUnit, attr.Value));
-			if (this.relativeDate == RelativeDateType.Frequency)
-			{
-				timeUnit = (attr = xmlTaskRef.Attribute("dateOffsetUnit")) == null ? this.refTask.DateOffset.Unit : attr.Value.ParseTimeUnit();
-				this.DateOffset = new TimeDistribution(timeUnit,
-					(attr = xmlTaskRef.Attribute("dateOffsetMin")) == null ? this.refTask.DateOffset.Min : new SimulationTime(timeUnit, attr.Value),
-					(attr = xmlTaskRef.Attribute("dateOffsetMean")) == null ? this.refTask.DateOffset.Mode : new SimulationTime(timeUnit, attr.Value),
-					(attr = xmlTaskRef.Attribute("dateOffsetMax")) == null ? this.refTask.DateOffset.Max : new SimulationTime(timeUnit, attr.Value));
-			}
-			if ((attr = xmlTaskRef.Attribute("workingHourStart")) != null)
-				this.DailyHourStart = new SimulationTime(TimeUnit.Hours, attr.Value);
-			if ((attr = xmlTaskRef.Attribute("workingHourEnd")) != null)
-				this.DailyHourEnd = new SimulationTime(TimeUnit.Hours, attr.Value);
-			if ((attr = xmlTaskRef.Attribute("onHolidays")) != null)
-				this.onHolidays = attr.Value.ParseBoolean();
-			timeUnit = (attr = xmlTaskRef.Attribute("taskDurationUnit")) == null ? this.refTask.Duration.Unit : attr.Value.ParseTimeUnit();
-			this.Duration = new TimeDistribution(timeUnit,
-				(attr = xmlTaskRef.Attribute("taskDurationMin")) == null ? this.refTask.Duration.Min : new SimulationTime(timeUnit, attr.Value),
-				(attr = xmlTaskRef.Attribute("taskDurationMean")) == null ? this.refTask.Duration.Mode : new SimulationTime(timeUnit, attr.Value),
-				(attr = xmlTaskRef.Attribute("taskDurationMax")) == null ? this.refTask.Duration.Max : new SimulationTime(timeUnit, attr.Value));
-			if ((attr = xmlTaskRef.Attribute("priority")) != null)
-				this.priority = attr.Value.ParseInteger();
-			if ( (attr = xmlTaskRef.Attribute("numberOfCrewMembersNeeded")) != null)
-				this.numberOfCrewmenNeeded = attr.Value.ParseInteger();
-			if ((attr = xmlTaskRef.Attribute("rotation")) != null)
-				this.Rotation = new SimulationTime(TimeUnit.Hours, Math.Min(24.0, Math.Max(0, attr.Value.ParseReal())));
-			else if ((attr = xmlTaskRef.Attribute("isRotating")) != null)	//Compatibility
-				this.Rotation = new SimulationTime(TimeUnit.Hours, attr.Value.ParseBoolean() ? 6.0 : 0.0);	//Previously hard-coded to 6-hour rotation
-			XElement elem;
-			if ((elem = xmlTaskRef.Element("description")) != null)
-				this.description = elem.Value;
-			return true;
-		}
-
-		protected internal virtual void SaveRefToXml(XmlWriter xmlWriter)
-		{
-			//if (this.systemTask) return;	//Do not save system tasks
-			xmlWriter.WriteStartElement("TaskRef");
-			xmlWriter.WriteAttributeString("refId", this.id.ToString(CultureInfo.InvariantCulture));
-			xmlWriter.WriteAttributeString("informativeName", this.name);
-			//Override values
-			//if (this.relativeDate != this.refTask.relativeDate) xmlWriter.WriteAttributeString("relativeDate", this.relativeDate.ToString());
-			//if (this.autoAssignToAllCrewMembers != this.refTask.autoAssignToAllCrewMembers) xmlWriter.WriteAttributeString("autoAssignToAllCrewMembers", this.autoAssignToAllCrewMembers.ToString(CultureInfo.InvariantCulture));
-			if (this.StartDate.Unit != this.refTask.StartDate.Unit)
-				xmlWriter.WriteAttributeString("startDateUnit", this.StartDate.Unit.ToString());
-			if (this.StartDate.Min != this.refTask.StartDate.Min)
-				xmlWriter.WriteAttributeString("startDateMin", this.StartDate.Min.ToStringRaw());
-			if (this.StartDate.Mode != this.refTask.StartDate.Mode)
-				xmlWriter.WriteAttributeString("startDateMean", this.StartDate.Mode.ToStringRaw());
-			if (this.StartDate.Max != this.refTask.StartDate.Max)
-				xmlWriter.WriteAttributeString("startDateMax", this.StartDate.Max.ToStringRaw());
-			if (this.relativeDate == RelativeDateType.Frequency)
-			{
-				if (this.DateOffset.Unit != this.refTask.DateOffset.Unit)
-					xmlWriter.WriteAttributeString("dateOffsetUnit", this.DateOffset.Unit.ToString());
-				if (this.DateOffset.Min != this.refTask.DateOffset.Min)
-					xmlWriter.WriteAttributeString("dateOffsetMin", this.DateOffset.Min.ToStringRaw());
-				if (this.DateOffset.Mode != this.refTask.StartDate.Mode)
-					xmlWriter.WriteAttributeString("dateOffsetMean", this.DateOffset.Mode.ToStringRaw());
-				if (this.DateOffset.Max != this.refTask.StartDate.Max)
-					xmlWriter.WriteAttributeString("dateOffsetMax", this.DateOffset.Max.ToStringRaw());
-			}
-			//if (this.relativeTime != this.refTask.relativeTime) xmlWriter.WriteAttributeString("relativeTime", this.relativeTime.ToString());
-			if (this.DailyHourStart != this.refTask.DailyHourStart)
-				xmlWriter.WriteAttributeString("workingHourStart", this.DailyHourStart.ToStringRaw());
-			if (this.DailyHourEnd != this.refTask.DailyHourEnd)
-				xmlWriter.WriteAttributeString("workingHourEnd", this.DailyHourEnd.ToStringRaw());
-			if (this.onHolidays != this.refTask.OnHolidays)
-				xmlWriter.WriteAttributeString("onHolidays", this.onHolidays.ToString());
-			if (this.Duration.Unit != this.refTask.Duration.Unit)
-				xmlWriter.WriteAttributeString("taskDurationUnit", this.Duration.Unit.ToString());
-			if (this.Duration.Min != this.refTask.Duration.Min)
-				xmlWriter.WriteAttributeString("taskDurationMin", this.Duration.Min.ToStringRaw());
-			if (this.Duration.Mode != this.refTask.Duration.Mode)
-				xmlWriter.WriteAttributeString("taskDurationMean", this.Duration.Mode.ToStringRaw());
-			if (this.Duration.Max != this.refTask.Duration.Max)
-				xmlWriter.WriteAttributeString("taskDurationMax", this.Duration.Max.ToStringRaw());
-			if (this.priority != this.refTask.Priority)
-				xmlWriter.WriteAttributeString("priority", this.priority.ToString(CultureInfo.InvariantCulture));
-			if (this.numberOfCrewmenNeeded != this.refTask.NumberOfCrewmenNeeded)
-				xmlWriter.WriteAttributeString("numberOfCrewMembersNeeded", this.numberOfCrewmenNeeded.ToString(CultureInfo.InvariantCulture));
-			if (this.Rotation != this.refTask.Rotation)
-				xmlWriter.WriteAttributeString("rotation", this.Rotation.TotalHours.ToString(CultureInfo.InvariantCulture));
-			if (this.description != this.refTask.Description)
-				xmlWriter.WriteElementString("description", this.description);
-			xmlWriter.WriteStartElement("alternativePhases");
-			//foreach (var alternativePhase in this.alternativePhases)
-			//	alternativePhase.Save(xmlAlternativePhases);	//TODO: alternative phases
-			xmlWriter.WriteEndElement();
-			xmlWriter.WriteEndElement();
-		}
-		#endregion
-
-		#region Simulation
-		/// <summary>
-		/// Cached information coming from Crewman.Qualifications. {Crewman, percentage}
-		/// </summary>
-		public readonly IDictionary<Crewman, byte> simulationCurrentQualifications;
-
-		//public double timeTaskArrives;
-
-		//public double timeTaskBegins;
-
-		SimulationTime lastProcessTime;
-
-		SimulationTime simulationTimeArrives = new SimulationTime(TimeUnit.Seconds, -1.0);
-
-		/// <summary>
-		/// Simulation time when this task instance has arrived (typically when changing state from "planned" to running).
-		/// </summary>
-		public SimulationTime SimulationTimeArrives
-		{
-			get { return this.simulationTimeArrives; }
-			set
-			{
-				this.simulationTimeArrives = value;
-				//if (this.simulationTimeLastCalculation < value)
-					this.lastProcessTime = value;
-			}
-		}
-
-		/*public SimulationTime SimulationTimeLastCalculation
-		{
-			get { return this.simulationTimeLastCalculation; }
-			set { this.simulationTimeLastCalculation = value; }
-		}*/
-
-		SimulationTime remainingDuration = SimulationTime.Zero;
-
-		/// <summary>
-		/// Remaining man-hours before completion of the task.
-		/// </summary>
-		public SimulationTime RemainingDuration
-		{
-			get
-			{
-				//if (this.remainingDuration.NegativeOrZero) this.remainingDuration = SimulationTime.Zero;
-				return this.remainingDuration;
-			}
-			internal set { this.remainingDuration = value; }
-		}
-
-		/// <summary>
-		/// True if the task is completed, false otherwise.
-		/// </summary>
-		public bool Completed
-		{
-			get { return this.remainingDuration.NegativeOrZero; }
-		}
-
-		/// <summary>
-		/// List of crewmen currently working on the task.
-		/// </summary>
-		public readonly List<Crewman> simulationCrewmenAssigned = new List<Crewman>();
-
-		/// <summary>
-		/// To call before starting a new occurence of the same simulation.
-		/// </summary>
-		public virtual void PrepareForNextOccurrence()
-		{
-			this.remainingDuration = this.Duration.XValue;
-			this.lastProcessTime = this.simulationTimeArrives;
-			//if (this.simulationCrewMembersAssigned == null) this.simulationCrewMembersAssigned = new List<CrewMember>();
-			//else this.crewMembersAssigned.Clear();	//TODO: Find out if we want to clear the list at this point
-		}
-
-		/// <summary>
-		/// To call when the task has been active until now, in order to update the statistics of the task (e.g. remaining duration).
-		/// Does not call <see cref="Crewman.RefreshStatus"/> by default.
-		/// </summary>
-		/// <param name="currentTime">Current simulation time.</param>
-		/// <param name="phase">Phase during which the process occurs.</param>
-		/// <returns>A positive duration if the task was processed, <see cref="SimulationTime.Zero"/> otherwise.</returns>
-		public virtual SimulationTime ProcessUntilNow(SimulationTime currentTime, Phase phase)
-		{
-			var previousProcessTime = this.lastProcessTime;
-			this.lastProcessTime = currentTime;
-			if (this.simulationCrewmenAssigned.Count >= this.numberOfCrewmenNeeded)
-			{
-				var duration = currentTime - previousProcessTime;
-				if (duration.Positive)
-				{
-					this.remainingDuration -= duration;
-					Debug.Assert((this.taskType == (int)StandardTaskType.InternalWait) || Allowed(phase), "A task must not run in phases where it is not allowed!");
-					Debug.Assert(duration <= currentTime - phase.simulationTimeBegin, "A task cannot last longer than its phase!");
-					return duration;
-				}
-			}
-			return SimulationTime.Zero;
-		}
-
-		/// <summary>
-		/// To call when the task has been waiting until now, in order to update the statistics of the task.
-		/// </summary>
-		/// <param name="currentTime">Current simulation time.</param>
-		public virtual void SleepUntilNow(SimulationTime currentTime)
-		{
-			this.lastProcessTime = currentTime;
-		}
-
-		/// <summary>
-		/// To call when the time since last update needs to be discarded.
-		/// Used for instance when a task has to start a bit before than current time and be shortened accordingly.
-		/// </summary>
-		/// <param name="currentTime">Current simulation time.</param>
-		public virtual void DiscardUntilNow(SimulationTime currentTime)
-		{
-			var duration = currentTime - this.lastProcessTime;
-			if (duration.Positive) this.remainingDuration -= duration;
-			this.lastProcessTime = currentTime;
-		}
-
-		public SimulationTime RemainingProcessingTime()
-		{//TODO: Integrate simulationCrewMembersAssigned
-			/*double speed = 1.0;
-			double exclusivity = 1.0;
-			return (speed <= 0.0) || (exclusivity <= 0) ? SimulationTime.MaxValue :
-				new SimulationTime(TimeUnit.Seconds, (this.remainingDuration.TotalSeconds / speed) / exclusivity);*/
-			return this.remainingDuration;
-		}
-
-		/// <summary>
-		/// Check the different time constraints to tell when the task will next be allowed to be resumed.
-		/// </summary>
-		/// <param name="eventTime">A simulation time</param>
-		/// <param name="allowCurrentTime">Gives the possibility to use the given simulation time</param>
-		/// <returns>A simulation time in the relative future when the task is allowed to run</returns>
-		public SimulationTime NextPossibleResume(SimulationTime eventTime, bool allowCurrentTime = true)
-		{
-			var workStart = eventTime.NextDayTime(this.DailyHourStart, allowCurrentTime);
-			var workEnd = eventTime.NextDayTime(this.DailyHourEnd, allowCurrentTime);
-			if ((workStart < workEnd) || (eventTime >= workEnd))
-				eventTime = workStart;	//TimeWindow, next day
-			else if (!allowCurrentTime) eventTime = eventTime.NextUp();
-			if ((!this.onHolidays) && eventTime.IsSunday)
-			{
-				eventTime = eventTime.NextWeekTime(SimulationTime.OneDay, allowCurrentTime: false);	//Next monday
-				workStart = eventTime.NextDayTime(this.DailyHourStart);
-				workEnd = eventTime.NextDayTime(this.DailyHourEnd);
-				if ((workStart < workEnd) || (eventTime >= workEnd))
-					eventTime = workStart;	//TimeWindow, next day
-			}
-			return eventTime;
-		}
-
-		/// <summary>
-		/// Tells if the task is allowed to run at this time of the day.
-		/// </summary>
-		/// <param name="eventTime">A date/time; only the time of the day will be used.</param>
-		/// <returns>true if the task is allowed to run at this time of the day, false otherwise.</returns>
-		public bool IsAllowedTime(SimulationTime eventTime)
-		{
-			return eventTime.InDayTimeInterval(this.DailyHourStart, this.DailyHourEnd) &&
-				(this.onHolidays || (!eventTime.IsSunday) ||
-					(!eventTime.NextDown().IsSunday));	//Case of Sunday at 00:00
-		}
-		#endregion
 	}
 }

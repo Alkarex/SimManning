@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 
 namespace SimManning
 {
@@ -278,6 +277,47 @@ namespace SimManning
 	}
 
 	/// <summary>
+	/// Policy to handle duplicates, i.e. when a new instance of a task is created
+	/// when the previous instance(s) is not finished.
+	/// </summary>
+	public enum TaskDuplicatesPolicy
+	{
+		/// <summary>
+		/// Undefined and thus invalid.
+		/// </summary>
+		Undefined,
+
+		/// <summary>
+		/// Keep all distinct instances.
+		/// </summary>
+		/// <remarks>
+		/// Risk of overloading the system.
+		/// </remarks>
+		KeepDuplicates,
+
+		/*/// <summary>
+		/// Automatic mode keeping one duplicate per qualified crewman
+		/// </summary>
+		Automatic,*/	//TODO: Implement automatic mode
+
+		/// <summary>
+		/// Merge all instances into one single instance,
+		/// with a total time being the sum of remaining processing time of all instances.
+		/// </summary>
+		MergeDuplicates,
+
+		/// <summary>
+		/// Kill existing instances.
+		/// </summary>
+		KillOldDuplicates,
+
+		/// <summary>
+		/// Kill the new instances if the previous one is not finished.
+		/// </summary>
+		KillNewDuplicates	//TODO: Do more testing
+	}
+
+	/// <summary>
 	/// Different types of standard tasks.
 	/// Implementations inheriting from <see cref="SimulationTask"/> may have some additional types.
 	/// It is suggested to use "accounting-like" codes where the first digit is the most significant,
@@ -339,95 +379,5 @@ namespace SimManning
 		/// The data-structures are not used and new empty ones are created instead.
 		/// </summary>
 		Clear
-	}
-
-	partial class SimulationTask
-	{
-		public static RelativeDateType ParseRelativeDateType(string value)
-		{
-			if (String.IsNullOrEmpty(value)) return RelativeDateType.Undefined;
-			var i = value.IndexOfAny(new char[] { ' ' });
-			if (i > 0) value = value.Substring(0, i);
-			if (value.StartsWith("RelativeStartFromPrevious", StringComparison.Ordinal) && ((value == "RelativeStartFromPreviousStartOccurrence") ||
-				(value == "RelativeStartFromPreviousStartOccurence") || (value == "RelativeStartFromPreviousEndOccurence")))	//Mind the spelling Occurence/Occurrence.
-				return RelativeDateType.Frequency;	//This is a hack due to changes of meaning in simulator implementation since earlier versions
-			try
-			{
-				var result = (RelativeDateType)Enum.Parse(typeof(RelativeDateType), value, ignoreCase: true);
-				return Enum.IsDefined(typeof(RelativeDateType), result) ? result : RelativeDateType.Undefined;
-			}
-			catch (ArgumentException) { return RelativeDateType.Undefined; }
-			catch (OverflowException) { return RelativeDateType.Undefined; }
-		}
-
-		public static RelativeTimeType ParseRelativeTimeType(string value)
-		{
-			if (String.IsNullOrEmpty(value)) return RelativeTimeType.Undefined;
-			var i = value.IndexOfAny(new char[] { ' ' });
-			if (i > 0) value = value.Substring(0, i);
-			try
-			{
-				var result = (RelativeTimeType)Enum.Parse(typeof(RelativeTimeType), value, ignoreCase: true);
-				return Enum.IsDefined(typeof(RelativeTimeType), result) ? result : RelativeTimeType.Undefined;
-			}
-			catch (ArgumentException) { return RelativeTimeType.Undefined; }
-			catch (OverflowException) { return RelativeTimeType.Undefined; }
-		}
-
-		public static TaskInterruptionPolicies ParseTaskInterruptionPolicy(string value)
-		{
-			if (String.IsNullOrEmpty(value)) return TaskInterruptionPolicies.Undefined;
-			var i = value.IndexOfAny(new char[] { ' ' });
-			if (i > 0) value = value.Substring(0, i);
-			try
-			{
-				var result = (TaskInterruptionPolicies)Enum.Parse(typeof(TaskInterruptionPolicies), value, ignoreCase: true);
-				return Enum.IsDefined(typeof(TaskInterruptionPolicies), result) ? result : TaskInterruptionPolicies.Undefined;
-			}
-			catch (ArgumentException) { return TaskInterruptionPolicies.Undefined; }
-			catch (OverflowException) { return TaskInterruptionPolicies.Undefined; }
-		}
-
-		public static PhaseInterruptionPolicies ParsePhaseInterruptionPolicy(string value)
-		{
-			if (String.IsNullOrEmpty(value)) return PhaseInterruptionPolicies.Undefined;
-			var i = value.IndexOfAny(new char[] { ' ' });
-			if (i > 0) value = value.Substring(0, i);
-			if (value == "DontInterrupt") value = "DoNotInterrupt";	//This is a hack due to change of name
-			else if (value == "ResumeAndComplete") return PhaseInterruptionPolicies.ResumeOrDropWithError;
-			try
-			{
-				var result = (PhaseInterruptionPolicies)Enum.Parse(typeof(PhaseInterruptionPolicies), value, ignoreCase: true);
-				return Enum.IsDefined(typeof(PhaseInterruptionPolicies), result) ? result : PhaseInterruptionPolicies.Undefined;
-			}
-			catch (ArgumentException) { return PhaseInterruptionPolicies.Undefined; }
-			catch (OverflowException) { return PhaseInterruptionPolicies.Undefined; }
-		}
-
-		public static ScenarioInterruptionPolicies ParseScenarioInterruptionPolicy(string value)
-		{
-			if (String.IsNullOrEmpty(value)) return ScenarioInterruptionPolicies.Undefined;
-			var i = value.IndexOfAny(new char[] { ' ' });
-			if (i > 0) value = value.Substring(0, i);
-			try
-			{
-				var result = (ScenarioInterruptionPolicies)Enum.Parse(typeof(ScenarioInterruptionPolicies), value, ignoreCase: true);
-				return Enum.IsDefined(typeof(ScenarioInterruptionPolicies), result) ? result : ScenarioInterruptionPolicies.Undefined;
-			}
-			catch (ArgumentException) { return ScenarioInterruptionPolicies.Undefined; }
-			catch (OverflowException) { return ScenarioInterruptionPolicies.Undefined; }
-		}
-
-		public static InterruptionTypes ParseInterruptionTypes(string value)
-		{
-			if (String.IsNullOrEmpty(value)) return InterruptionTypes.None;
-			try
-			{
-				var result = (InterruptionTypes)Enum.Parse(typeof(InterruptionTypes), value, ignoreCase: true);
-				return Enum.IsDefined(typeof(InterruptionTypes), result) ? result : InterruptionTypes.None;
-			}
-			catch (ArgumentException) { return InterruptionTypes.None; }
-			catch (OverflowException) { return InterruptionTypes.None; }
-		}
 	}
 }

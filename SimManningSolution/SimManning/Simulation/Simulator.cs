@@ -6,9 +6,10 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.Contracts;
 using System.Globalization;
 using System.Linq;
-using System.Reflection;
+using System.Text;
 using SimManning.Domain;
 
 namespace SimManning.Simulation
@@ -28,9 +29,9 @@ namespace SimManning.Simulation
 		}
 
 		/// <summary>
-		/// Used for NoDuplicates and Slaves. Only one task at a time will be active.
+		/// Used for NoDuplicate and Slaves. Only one task at a time will be active.
 		/// </summary>
-		readonly HashSet<int> taskIdsActive = new HashSet<int>();	//TODO: Debug (Only one task at a time will be active)
+		readonly HashSet<int> taskIdsActive = new HashSet<int>();	//TODO: Debug (Only one task at a time will be active). Should be changed to a counter
 
 		int nbObligatoryTasksActive;
 
@@ -62,9 +63,15 @@ namespace SimManning.Simulation
 		public event ErrorMessageEventHandler OnErrorMessage;
 		#endregion
 
+		[ContractInvariantMethod]
+		void ObjectInvariant()
+		{
+			Contract.Invariant(nbObligatoryTasksActive >= 0);
+			Contract.Invariant(nbEventInsertions >= 0);
+		}
+
 		public Simulator(SimulationDataSet simulationDataSet)
 		{
-			if (!SimManningCommon.InternalEngineAllowed) throw new NotImplementedException(SimManningCommon.ErrorMessageInternalEngineNotAllowed);
 			this.simulationDataSet = simulationDataSet;
 			this.simulationDataSet.PrepareForFirstSimulation();
 			this.OnErrorMessage += (text) => Debug.WriteLine(text);
@@ -90,7 +97,7 @@ namespace SimManning.Simulation
 				if ((!String.IsNullOrWhiteSpace(myMessage)) && (this.OnErrorMessage != null))
 					this.OnErrorMessage(myMessage);
 			}
-			foreach (var task in this.simulationDataSet.TaskDictionaryExpanded.Values.AsParallel().Where(t => t.Enabled))
+			foreach (var task in this.simulationDataSet.TaskDictionaryExpanded.Values.Where(t => t.Enabled))
 				if (!task.Valid)
 				{
 					if (this.OnTaskError != null) this.OnTaskError(phase: null, task: task);	//Event
@@ -119,7 +126,7 @@ namespace SimManning.Simulation
 
 		public bool Run(SimulationTime timeOrigin, DomainDispatcher domainDispatcher, Random aRand = null)
 		{
-			if (!SimManningCommon.InternalEngineAllowed) throw new NotImplementedException(SimManningCommon.ErrorMessageInternalEngineNotAllowed);
+			Contract.Requires(domainDispatcher != null);
 			Debug.WriteLine("{0}======== {1} ========", Environment.NewLine, this.simulationDataSet);
 			this.simulationTime = timeOrigin;
 			var timeLimit = timeOrigin;
@@ -233,20 +240,23 @@ namespace SimManning.Simulation
 
 		void DoPhaseTransition(Phase previousPhase, Phase phase)
 		{//TODO: Improve maintenability index to be >= 30 also in debug mode (see Code Metrics)
-			if (!SimManningCommon.InternalEngineAllowed) throw new NotImplementedException(SimManningCommon.ErrorMessageInternalEngineNotAllowed);
 			if (this.OnPhaseTransitionBegin != null)	//Event
 				this.OnPhaseTransitionBegin(previousPhase, phase, this.simulationTime);
 			this.taskIdsActive.Clear();
 			this.nbObligatoryTasksActive = 0;
 			foreach (var myEvent in this.asapQueue)
 				myEvent.EventTime = myEvent.Task.NextPossibleResume(this.simulationTime);
+			foreach (var myEvent in this.parallelQueue.Values)
+				myEvent.EventTime = myEvent.Task.NextPossibleResume(this.simulationTime);
 			var eventsToKeep = new List<SimulationTaskEvent>();
-			foreach (var myEvent in this.asapQueue.Concat(this.eventQueue))
+			var oldParallelQueue = this.parallelQueue.Values.ToList();
+			this.parallelQueue.Clear();
+			foreach (var myEvent in this.asapQueue.Concat(this.eventQueue).Concat(oldParallelQueue))
 			{//The events may be processed in a random order. Good potential for parallel processing
 				var task = myEvent.Task;
 				var killed = true;
 				var error = true;
-				if (myEvent.subtype == SimulationTaskEvent.SubtypeType.TaskPlanned)
+				if (myEvent.subtype == SimulationTaskEvent.SubtypeType.TaskPlanned || myEvent.subtype == SimulationTaskEvent.SubtypeType.TaskWaitingParallel)
 				{
 					error = false;	//The task had not arrived yet
 					if (phase != null)
@@ -258,7 +268,7 @@ namespace SimManning.Simulation
 							case RelativeDateType.RelativeStartFromPreviousStart:
 								//Temporarily keep tasks that are relative to the previous occurence if they appear in the next phase
 								if (task.PhaseTypes.Any(pt => phase.PhaseType.IsSubCodeOf(pt)) &&
-									(!eventsToKeep.Any(e => e.Task.Id == task.Id)))	//Keep only one instance	//TODO: Debug
+									(!eventsToKeep.Concat(parallelQueue.Values).Any(e => e.Task.Id == task.Id)))	//Keep only one instance	//TODO: Debug
 									killed = false;	//Task can temporarily continue
 								break;
 						}
@@ -313,7 +323,9 @@ namespace SimManning.Simulation
 				{
 					if (myEvent.Task.PhaseInterruptionPolicy == PhaseInterruptionPolicies.Obligatory)
 						this.nbObligatoryTasksActive++;
-					eventsToKeep.Add(myEvent);
+					if (myEvent.subtype == SimulationTaskEvent.SubtypeType.TaskWaitingParallel)
+						this.parallelQueue.Add(myEvent.Task.Id, myEvent);
+					else eventsToKeep.Add(myEvent);
 					if (myEvent.subtype != SimulationTaskEvent.SubtypeType.TaskPlanned)
 						this.taskIdsActive.Add(myEvent.Task.Id);
 				}
@@ -375,38 +387,60 @@ namespace SimManning.Simulation
 			var currentTask = simulationEvent.Task;
 			SimulationTaskEvent duplicateEvent;
 			int i;
-			if ((i = FindNextAsapIndex(currentTask.Id)) >= 0)
+			if ((simulationEvent.Task.ParallelTasks.Count > 0) && this.parallelQueue.TryGetValue(currentTask.Id, out duplicateEvent))
+				this.parallelQueue.Remove(currentTask.Id);
+			else if ((i = FindNextAsapIndex(currentTask.Id)) >= 0)
 			{//Check first for duplicates in the ASAP queue
 				duplicateEvent = this.asapQueue[i];
-				this.asapQueue.RemoveAt(i);
+				if (duplicateEvent.Task.DuplicatesPolicy != TaskDuplicatesPolicy.KillNewDuplicates)
+					this.asapQueue.RemoveAt(i);
 			}
 			else if ((i = FindNextEventIndex(currentTask.Id)) >= 0)
 			{
 				duplicateEvent = this.eventQueue[i];
-				this.eventQueue.RemoveAt(i);	//Interrupt only the first instance of a given task, assuming that this is the one that is active (to be refined).
+				if (duplicateEvent.Task.DuplicatesPolicy != TaskDuplicatesPolicy.KillNewDuplicates)
+					this.eventQueue.RemoveAt(i);	//Interrupt only the first instance of a given task, assuming that this is the one that is active (to be refined).
 			}
 			else
 			{
 				duplicateEvent = null;
 				Debug.Assert(false, "A task ID is active but no corresponding task was found!");
 			}
-			if (duplicateEvent != null)
+			if (duplicateEvent == null) return false;	//Was not a duplicate
+			else
 			{
 				if ((duplicateEvent.subtype & SimulationTaskEvent.SubtypeType.TaskMetaStart) == duplicateEvent.subtype)	//Task was sleeping
 					duplicateEvent.Task.SleepUntilNow(this.simulationTime);	//In order to avoid problems later when ProcessUntilNow will be called when processing TaskKilled
 				else duplicateEvent.Task.ProcessUntilNow(this.simulationTime, this.simulationPhase);	//In order to have the good remaining duration
-				duplicateEvent.EventTime = this.simulationTime;
-				duplicateEvent.subtype = SimulationTaskEvent.SubtypeType.TaskKilled;
-				if (!currentTask.NoDuplicate)
-				{//Merge tasks
-					Debug.WriteLine("➨\t{0}\t(Merging with existing tasks: {1})", simulationEvent, duplicateEvent.Task.RemainingDuration);
-					currentTask.RemainingDuration += duplicateEvent.Task.RemainingDuration;
+				switch (duplicateEvent.Task.DuplicatesPolicy)
+				{
+					/*case TaskDuplicatesPolicy.Automatic:
+						if ("Number of current instances >= number of qualified crewmen") goto case TaskDuplicatesPolicy.MergeDuplicates;
+						else goto case TaskDuplicatesPolicy.KeepDuplicates;*/	//TODO: Implement Automatic taskDuplicatesPolicy
+					case TaskDuplicatesPolicy.MergeDuplicates:
+						Debug.WriteLine("➨\t{0}\t(Merging with existing tasks: {1})", simulationEvent, duplicateEvent.Task.RemainingDuration);
+						currentTask.RemainingDuration += duplicateEvent.Task.RemainingDuration;
+						goto case TaskDuplicatesPolicy.KillOldDuplicates;
+					case TaskDuplicatesPolicy.KillOldDuplicates:
+						duplicateEvent.subtype = SimulationTaskEvent.SubtypeType.TaskKilled;
+						duplicateEvent.EventTime = this.simulationTime;
+						ConsumeEvent(duplicateEvent);	//Recursive: kill the task immediatly instead of AddEvent() for performances reasons
+						ConsumeEvent(simulationEvent);	//Recursive: try again the current TaskPlanned event next time
+						return true;
+					case TaskDuplicatesPolicy.KillNewDuplicates:
+						simulationEvent.subtype = SimulationTaskEvent.SubtypeType.TaskKilled;
+						simulationEvent.EventTime = this.simulationTime;
+						ConsumeEvent(simulationEvent);	//Recursive: kill the task immediatly instead of AddEvent() for performances reasons
+						if (currentTask.RelativeDate == RelativeDateType.Frequency)
+							ConsumeFrequency(simulationEvent);
+						return true;
+					case TaskDuplicatesPolicy.KeepDuplicates:
+					case TaskDuplicatesPolicy.Undefined:
+					default:
+						Debug.Assert(false, "This taskDuplicatesPolicy should not occur in ConsumeTaskDuplicate(): " + duplicateEvent.Task.DuplicatesPolicy.ToString());
+						return false;
 				}
-				ConsumeEvent(duplicateEvent);	//Recursive: kill the task immediatly instead of AddEvent() for performances reasons
-				ConsumeEvent(simulationEvent);	//Recursive: try again the current TaskPlanned event next time
-				return true;	//Task was indeed a duplicate
 			}
-			return false;	//Was not a duplicate
 		}
 
 		/// <summary>
@@ -427,28 +461,7 @@ namespace SimManning.Simulation
 				if (currentTask.PhaseTypes.Any(pt => this.simulationPhase.PhaseType.IsSubCodeOf(pt)))
 				{
 					if (currentTask.RelativeDate == RelativeDateType.Frequency)
-					{
-						var nextTask = this.simulationDataSet.TaskDictionaryExpanded.CreateTask(currentTask, TaskLinkingType.Linked);
-						var nextTime = originalEventTime + nextTask.StartDate.NextValue(this.rand);
-						if ((currentTask.RelativeTime != RelativeTimeType.AbsoluteStartTime) &&	//No need to process AbsoluteStartTime, as it is always planned properly
-							(currentTask.DailyHourStart != currentTask.DailyHourEnd))
-						{//There is a time window
-							var offset = SimulationTime.DayTimeOffset(nextTask.DailyHourStart + nextTask.DateOffset.XValue, originalEventTime);	//DayTimeOffset is always positive
-							if (offset.Positive && (offset < nextTask.StartDate.XValue))
-							{//Correction if the task is not originally planned at the beginning of the time window.
-								nextTime -= offset;	//Plan the next task properly
-								var shift = SimulationTime.DayTimeOffset(currentTask.DailyHourStart, currentTask.DailyHourEnd) -
-									currentTask.Duration.XValue;	//As much of the task as possible must be done after the current time
-								if (shift.Positive && (shift < offset))
-								{//Start virtually a bit before using a negative offset
-									currentTask.SimulationTimeArrives -= offset - shift;
-									currentTask.DiscardUntilNow(originalEventTime);
-								}
-							}
-						}
-						Debug.WriteLine("➨\t{0}\t(remaining: {1})", simulationEvent, currentTask.RemainingDuration);
-						EnqueueTaskArrival(nextTask, nextTask.NextPossibleResume(nextTime), original: false);
-					}
+						ConsumeFrequency(simulationEvent);
 				}
 				else
 				{//This phase-independent task is not allowed in the current phase
@@ -476,7 +489,34 @@ namespace SimManning.Simulation
 				foreach (var slaveTask in currentTask.SlaveTasks.Values.Where(t => t.Enabled))	//Start slaves
 					EnqueueTaskArrival(this.simulationDataSet.TaskDictionaryExpanded.CreateTask(slaveTask, TaskLinkingType.Linked), simulationEvent.EventTime, original: true);
 			this.taskIdsActive.Add(currentTask.Id);	//Do after frequency case
-			ResumeTask(simulationEvent);
+			if ((currentTask.ParallelTasks.Count == 0) || ParallelReady(simulationEvent))
+				ResumeTask(simulationEvent);
+		}
+
+		void ConsumeFrequency(SimulationTaskEvent simulationEvent)
+		{
+			var currentTask = simulationEvent.Task;
+			var originalEventTime = simulationEvent.EventTime;
+			var nextTask = this.simulationDataSet.TaskDictionaryExpanded.CreateTask(currentTask, TaskLinkingType.Linked);
+			var nextTime = originalEventTime + nextTask.StartDate.NextValue(this.rand);
+			if ((currentTask.RelativeTime != RelativeTimeType.AbsoluteStartTime) &&	//No need to process AbsoluteStartTime, as it is always planned properly
+				(currentTask.DailyHourStart != currentTask.DailyHourEnd))
+			{//There is a time window
+				var offset = SimulationTime.DayTimeOffset(nextTask.DailyHourStart + nextTask.DateOffset.XValue, originalEventTime);	//DayTimeOffset is always positive
+				if (offset.Positive && (offset < nextTask.StartDate.XValue))
+				{//Correction if the task is not originally planned at the beginning of the time window.
+					nextTime -= offset;	//Plan the next task properly
+					var shift = SimulationTime.DayTimeOffset(currentTask.DailyHourStart, currentTask.DailyHourEnd) -
+						currentTask.Duration.XValue;	//As much of the task as possible must be done after the current time
+					if (shift.Positive && (shift < offset))
+					{//Start virtually a bit before using a negative offset
+						currentTask.SimulationTimeArrives -= offset - shift;
+						currentTask.DiscardUntilNow(originalEventTime);
+					}
+				}
+			}
+			Debug.WriteLine("➨\t{0}\t(remaining: {1})", simulationEvent, currentTask.RemainingDuration);
+			EnqueueTaskArrival(nextTask, nextTask.NextPossibleResume(nextTime), original: false);
 		}
 
 		/// <summary>
@@ -497,25 +537,7 @@ namespace SimManning.Simulation
 			if (currentTask.SlaveTasks.Count > 0)
 				StopSlaves(simulationEvent);
 			if (currentTask.ParallelTasks.Count > 0)
-				foreach (var pt in currentTask.ParallelTasks.Values)
-				{
-					var i = FindNextEventIndex(pt.Id);
-					if (i >= 0)
-					{
-						var parallelEvent = this.eventQueue[i];
-						if ((parallelEvent.subtype & SimulationTaskEvent.SubtypeType.TaskMetaNotStarted) != parallelEvent.subtype)
-						{
-							parallelEvent.Task.ProcessUntilNow(originalEventTime, this.simulationPhase);
-							if (parallelEvent.Task.RemainingDuration.Positive)
-							{
-								this.eventQueue.RemoveAt(i);
-								parallelEvent.subtype = SimulationTaskEvent.SubtypeType.TaskKilled;
-								parallelEvent.EventTime = originalEventTime;
-								ConsumeEvent(parallelEvent);	//Recursive: kill the task immediatly instead of AddEvent() for performances reasons
-							}
-						}
-					}
-				}
+				StopParallels(simulationEvent);
 			if (simulationEvent.subtype == SimulationTaskEvent.SubtypeType.TaskEnds)
 			{
 				if (currentTask.RemainingDuration.Positive)
@@ -541,9 +563,25 @@ namespace SimManning.Simulation
 			}
 		}
 
+		string DebugQueuesPrint()
+		{
+			var result = new StringBuilder("\t\tASAP Queue:\n");
+			foreach (var simulationEvent in this.asapQueue)
+				result.Append("\t\t\t").AppendLine(simulationEvent.ToString());
+			result.AppendLine("\t\tParallel Queue:");
+			foreach (var simulationEvent in this.parallelQueue.Values)
+				result.Append("\t\t\t").AppendLine(simulationEvent.ToString());
+			result.AppendLine("\t\tEvent Queue:");
+			foreach (var simulationEvent in this.eventQueue)
+				result.Append("\t\t\t").AppendLine(simulationEvent.ToString());
+			result.Length -= Environment.NewLine.Length;
+			return result.ToString();
+		}
+
 		void ConsumeEvent(SimulationTaskEvent simulationEvent)
 		{
-			if (!SimManningCommon.InternalEngineAllowed) throw new NotImplementedException(SimManningCommon.ErrorMessageInternalEngineNotAllowed);
+			//Debug.WriteLine("\t\t• Consume event: " + simulationEvent.ToString());
+			//Debug.WriteLine(DebugQueuesPrint());	//More debugging information
 			var originalEventTime = simulationEvent.EventTime;
 			this.simulationTime = simulationEvent.EventTime;
 			var callTaskDismiss = false;
@@ -551,7 +589,7 @@ namespace SimManning.Simulation
 			switch (simulationEvent.subtype)
 			{
 				case SimulationTaskEvent.SubtypeType.TaskPlanned:
-					if (currentTask.NeedsDuplicateManagement && this.taskIdsActive.Contains(currentTask.Id) &&
+					if ((currentTask.DuplicatesPolicy != TaskDuplicatesPolicy.KeepDuplicates) && this.taskIdsActive.Contains(currentTask.Id) &&
 						ConsumeTaskDuplicate(simulationEvent))
 						return;
 					ConsumeTaskPlanned(simulationEvent);
@@ -660,6 +698,30 @@ namespace SimManning.Simulation
 			}
 		}
 
+		void StopParallels(SimulationTaskEvent simulationEvent)
+		{
+			var originalEventTime = simulationEvent.EventTime;
+			foreach (var pt in simulationEvent.Task.ParallelTasks.Values)
+			{
+				var i = FindNextEventIndex(pt.Id);
+				if (i >= 0)
+				{
+					var parallelEvent = this.eventQueue[i];
+					if ((parallelEvent.subtype & SimulationTaskEvent.SubtypeType.TaskMetaNotStarted) != parallelEvent.subtype)
+					{
+						parallelEvent.Task.ProcessUntilNow(originalEventTime, this.simulationPhase);
+						if (parallelEvent.Task.RemainingDuration.Positive)
+						{
+							this.eventQueue.RemoveAt(i);
+							parallelEvent.subtype = SimulationTaskEvent.SubtypeType.TaskKilled;
+							parallelEvent.EventTime = originalEventTime;
+							ConsumeEvent(parallelEvent);	//Recursive: kill the task immediatly instead of AddEvent() for performances reasons
+						}
+					}
+				}
+			}
+		}
+
 		/// <summary>
 		/// Sub-function of <see cref="EnqueueTaskArrival"/>.
 		/// </summary>
@@ -669,6 +731,7 @@ namespace SimManning.Simulation
 		/// <returns>A start time for the task</returns>
 		static SimulationTime FindStartTime(SimulationTask task, SimulationTime eventTime, SimulationTime nextEventTime)
 		{
+			Contract.Requires(task != null);
 		FindStartTime:
 			switch (task.RelativeTime)
 			{
@@ -704,7 +767,6 @@ namespace SimManning.Simulation
 
 		void EnqueueTaskArrival(SimulationTask task, SimulationTime eventTime, bool original)
 		{
-			if (!SimManningCommon.InternalEngineAllowed) throw new NotImplementedException(SimManningCommon.ErrorMessageInternalEngineNotAllowed);
 			task.StartDate.NextValue(this.rand);
 			task.Duration.NextValue(this.rand);
 			task.PrepareForNextOccurrence();
@@ -796,7 +858,6 @@ namespace SimManning.Simulation
 
 		void InterruptTask(SimulationTaskEvent simulationEvent, bool tryAssignmentAgainNow, bool recursive)
 		{//TODO: Interruption errors
-			if (!SimManningCommon.InternalEngineAllowed) throw new NotImplementedException(SimManningCommon.ErrorMessageInternalEngineNotAllowed);
 			var task = simulationEvent.Task;
 			task.ProcessUntilNow(this.simulationTime, this.simulationPhase);
 			if ((task.TaskInterruptionPolicy == TaskInterruptionPolicies.DropWithError) || (task.TaskInterruptionPolicy == TaskInterruptionPolicies.DropWithoutError) ||
@@ -844,8 +905,8 @@ namespace SimManning.Simulation
 		void InterruptTaskIds(IEnumerable<int> taskIds, bool tryAssignmentAgainNow = false, bool recursive = true)
 		{
 			foreach (var taskId in taskIds)
-			{
-				var i = FindNextEventIndex(taskId);	//TODO: Find a better way to know what tasks to interrupt
+			{//TODO: Find a better way to know what tasks to interrupt
+				var i = FindNextEventIndex(ste => (ste.Task.Id == taskId) && ((ste.subtype & SimulationTaskEvent.SubtypeType.TaskMetaNotStarted) != ste.subtype));
 				if (i >= 0)
 				{
 					var simulationEvent = this.eventQueue[i];
@@ -858,12 +919,11 @@ namespace SimManning.Simulation
 
 		void ResumeTask(SimulationTaskEvent simulationEvent)
 		{
-			if (!SimManningCommon.InternalEngineAllowed) throw new NotImplementedException(SimManningCommon.ErrorMessageInternalEngineNotAllowed);
 			var task = simulationEvent.Task;
 			Debug.Assert((task.TaskType == (int)StandardTaskType.InternalWait) || task.Allowed(this.simulationPhase), "A task must not be resumed in phases where it is not allowed!");
 			task.SleepUntilNow(simulationEvent.EventTime);
 			var taskAssignmentTimeExpire = this.dispatcher.TaskAssignment(simulationEvent.EventTime, this.simulationPhase, task, this.InterruptTasks);
-			if (taskAssignmentTimeExpire.Negative) InterruptTask(simulationEvent, tryAssignmentAgainNow: false, recursive: true); //Task was not assigned
+			if (taskAssignmentTimeExpire.Negative) InterruptTask(simulationEvent, tryAssignmentAgainNow: false, recursive: true);	//Task was not assigned
 			else
 			{
 				var remainingProcessingTime = task.RemainingProcessingTime();
@@ -947,14 +1007,14 @@ namespace SimManning.Simulation
 			#endif
 		}
 
-		/*SimulationTaskEvent NextEventOrDefault(Func<SimulationTaskEvent, bool> predicate)
+		int FindNextEventIndex(Predicate<SimulationTaskEvent> match)
 		{
 			#if (REVERSE_QUEUE)
-			return this.eventQueue.LastOrDefault(predicate);
+			return this.eventQueue.FindLastIndex(match);
 			#else
-			return this.eventQueue.FirstOrDefault(predicate);
+			return this.eventQueue.FindIndex(match);
 			#endif
-		}*/
+		}
 
 		int FindNextEventIndex(int taskId)
 		{
@@ -1076,6 +1136,47 @@ namespace SimManning.Simulation
 		int FindNextAsapIndex(int taskId)
 		{
 			return this.asapQueue.FindLastIndex(se => se.Task.Id == taskId);	//Stored in reverse order
+		}
+		#endregion
+
+		#region Parallel tasks queue
+		readonly Dictionary<int, SimulationTaskEvent> parallelQueue = new Dictionary<int, SimulationTaskEvent>();
+
+		/// <summary>
+		/// Check if all the needed parallel tasks have arrived, and if yes, resume the waiting parallel tasks,
+		/// and if not, put aside the new parallel task.
+		/// </summary>
+		/// <param name="task">A task</param>
+		/// <returns>true if all needed parallel tasks have arrived, false otherwise.</returns>
+		bool ParallelReady(SimulationTaskEvent simulationEvent)
+		{
+			if (simulationEvent.subtype != SimulationTaskEvent.SubtypeType.TaskArrives)
+				return true;	//The parallel tasks were already started
+			var task = simulationEvent.Task;
+			var myParallelTaskEvents = new List<SimulationTaskEvent>();
+			foreach (var parallelTaskId in task.ParallelTasks.Keys)
+			{
+				SimulationTaskEvent mySimulationEvent;
+				if (this.parallelQueue.TryGetValue(parallelTaskId, out mySimulationEvent))
+					myParallelTaskEvents.Add(mySimulationEvent);
+				else
+				{
+					myParallelTaskEvents.Clear();
+					simulationEvent.subtype = SimulationTaskEvent.SubtypeType.TaskWaitingParallel;
+					this.parallelQueue.Add(task.Id, simulationEvent);	//Parallel tasks cannot have duplicates
+					Debug.WriteLine("◭\t{0}\t(remaining: {1})", simulationEvent, task.RemainingDuration);
+					return false;
+				}
+			}
+			foreach (var myParallelTaskEvent in myParallelTaskEvents)
+			{
+				this.parallelQueue.Remove(myParallelTaskEvent.Task.Id);	//Parallel tasks cannot have duplicates
+				myParallelTaskEvent.subtype = SimulationTaskEvent.SubtypeType.TaskWorkContinues;	//TODO: Consider using a custom type of status for that
+				myParallelTaskEvent.EventTime = simulationEvent.EventTime;
+				AddEvent(myParallelTaskEvent);
+			}
+			myParallelTaskEvents.Clear();
+			return true;
 		}
 		#endregion
 	}

@@ -2,12 +2,11 @@
 using System.Reflection;
 using System.Resources;
 using System.Runtime.InteropServices;
-using SimManning;
 
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("SimManning library for simulation of manning. Version " + (SimManningCommon.InternalEngineAllowed ? "including" : "excluding") + " the internal simulation engine."
+[assembly: AssemblyTitle("SimManning library for simulation of manning."
 	#if (DEBUG)
 	+ " (DEBUG version)"
 	#endif
@@ -16,7 +15,7 @@ using SimManning;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Technical University of Denmark")]
 [assembly: AssemblyProduct("SimManning")]
-[assembly: AssemblyCopyright("Copyright © DTU 2009-2011, Alexandre Alapetite")]
+[assembly: AssemblyCopyright("Copyright © DTU 2009-2012, Alexandre Alapetite")]
 [assembly: AssemblyTrademark("SimManning")]
 [assembly: AssemblyCulture("")]
 
@@ -39,5 +38,5 @@ using SimManning;
 // You can specify all the values or you can default the Build and Revision Numbers 
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("1.2.*")]
+[assembly: AssemblyVersion("1.3.*")]
 [assembly: NeutralResourcesLanguageAttribute("en")]

@@ -22,7 +22,7 @@ namespace SimManning.IO
 		/// <summary>
 		/// Global string used at the root of XML documents to distinguish different versions of the format.
 		/// </summary>
-		public static string XmlDomainVersion = "1.1";
+		public static string XmlDomainVersion = "1.3";
 
 		internal static readonly XmlReaderSettings SimManningXmlReaderSettings = new XmlReaderSettings
 		{
@@ -110,6 +110,11 @@ namespace SimManning.IO
 		public static ScenarioInterruptionPolicies ParseScenarioInterruptionPolicy(this XAttribute attribute)
 		{
 			return SimulationTask.ParseScenarioInterruptionPolicy(attribute == null ? String.Empty : attribute.Value);
+		}
+
+		public static TaskDuplicatesPolicy ParseTaskDuplicatesPolicy(this XAttribute attribute)
+		{
+			return SimulationTask.ParseTaskDuplicatesPolicy(attribute == null ? String.Empty : attribute.Value);
 		}
 
 		public static RelativeTimeType ParseRelativeTimeType(this XAttribute attribute)

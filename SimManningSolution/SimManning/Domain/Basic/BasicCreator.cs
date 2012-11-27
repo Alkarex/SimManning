@@ -11,7 +11,7 @@ namespace SimManning.Domain.Basic
 		static BasicCreator()
 		{
 			XmlIO.XmlDomain = "BasicDomain";
-			XmlIO.XmlDomainVersion = "1.2";
+			XmlIO.XmlDomainVersion = "1.3";
 		}
 
 		public override Workplace CreateWorkplace(string name)
