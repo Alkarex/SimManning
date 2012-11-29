@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
 using System.Globalization;
 using System.Linq;
 using System.Text;
@@ -15,10 +14,18 @@ namespace SimManning
 	{
 		readonly int id;
 
+		/// <summary>
+		/// Public identifier of this Task
+		/// </summary>
 		public int Id
 		{
 			get { return this.id; }
 		}
+
+		/// <summary>
+		/// Internal sequential ID used solely by the Simulation engine.
+		/// </summary>
+		internal int InternalId;
 
 		string name;
 
@@ -135,7 +142,7 @@ namespace SimManning
 		/// </remarks>
 		public bool IsAutoExpanded
 		{
-			get { return this.name.Contains('|'); }
+			get { return this.name.IndexOf('|') >= 0; }
 		}
 
 		RelativeDateType relativeDate;
@@ -331,12 +338,6 @@ namespace SimManning
 			get { return this.masterTasks; }
 		}
 
-		[ContractInvariantMethod]
-		void ObjectInvariant()
-		{
-			Contract.Invariant(this.numberOfCrewmenNeeded >= 0);
-		}
-
 		protected SimulationTask(int id)
 		{
 			this.id = id;
@@ -413,6 +414,7 @@ namespace SimManning
 				this.scenarioInterruptionPolicy = ScenarioInterruptionPolicies.Undefined;
 				return;
 			}
+			this.InternalId = refTask.InternalId;
 			this.name = this.refTask.name;
 			this.TaskType = this.refTask.taskType;
 			//this.systemTask = this.refTask.systemTask;

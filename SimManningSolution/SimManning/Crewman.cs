@@ -112,7 +112,7 @@ namespace SimManning
 			xmlWriter.WriteAttributeString("id", this.id.ToString(CultureInfo.InvariantCulture));
 			xmlWriter.WriteAttributeString("name", this.name);
 			xmlWriter.WriteAttributeString("crewMemberType", this.crewmanType.ToString(CultureInfo.InvariantCulture));
-			if (!String.IsNullOrWhiteSpace(this.description))
+			if (!String.IsNullOrEmpty(this.description))
 				xmlWriter.WriteElementString("description", this.description);
 			foreach (var qualification in this.qualifications)
 			{

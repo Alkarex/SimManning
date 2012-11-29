@@ -165,7 +165,7 @@ namespace SimManning
 		}
 
 		#region IO
-		protected internal virtual void LoadFromXml(XElement element, TaskDictionary taskList)
+		public virtual void LoadFromXml(XElement element, TaskDictionary taskList)
 		{
 			this.description = element.Element("description").Value;
 			XAttribute attr;
@@ -184,7 +184,7 @@ namespace SimManning
 			}
 		}
 
-		protected internal virtual void SaveToXml(XmlWriter xmlWriter)
+		public virtual void SaveToXml(XmlWriter xmlWriter)
 		{
 			var needsDeclaration = xmlWriter.WriteState == WriteState.Start;
 			xmlWriter.WriteStartElement("Phase");

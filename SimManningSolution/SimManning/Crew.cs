@@ -128,7 +128,7 @@ namespace SimManning
 		/// Load a crew from an XML serialisation.
 		/// </summary>
 		/// <param name="element">An XML element representing a crew</param>
-		protected internal virtual void LoadFromXml(XElement element)
+		public virtual void LoadFromXml(XElement element)
 		{
 			this.description = element.Element("description").Value;
 			foreach (var xmlCrewman in element.Elements("CrewMember"))
@@ -143,7 +143,7 @@ namespace SimManning
 		/// Save a crew to an XML serialisation.
 		/// </summary>
 		/// <param name="xmlWriter">An XML writer</param>
-		protected internal virtual void SaveToXml(XmlWriter xmlWriter)
+		public virtual void SaveToXml(XmlWriter xmlWriter)
 		{
 			var needsDeclaration = xmlWriter.WriteState == WriteState.Start;
 			xmlWriter.WriteStartElement("Crew");

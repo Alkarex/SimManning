@@ -232,7 +232,7 @@ namespace SimManning
 		}
 
 		#region IO
-		protected internal virtual void LoadFromXml(XElement element)
+		public virtual void LoadFromXml(XElement element)
 		{
 			this.description = element.Element("description").Value;
 			foreach (var xmlPhaseRef in element.Elements("PhaseRef"))
@@ -244,7 +244,7 @@ namespace SimManning
 			}
 		}
 
-		protected internal virtual void SaveToXml(XmlWriter xmlWriter)
+		public virtual void SaveToXml(XmlWriter xmlWriter)
 		{
 			var needsDeclaration = xmlWriter.WriteState == WriteState.Start;
 			xmlWriter.WriteStartElement("Scenario");

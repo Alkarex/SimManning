@@ -114,7 +114,7 @@ namespace SimManning
 			xmlWriter.WriteAttributeString("rotation", this.Rotation.TotalHours.ToString(CultureInfo.InvariantCulture));
 			xmlWriter.WriteAttributeString("noDuplicate", this.NoDuplicate.ToString());
 			xmlWriter.WriteAttributeString("taskDuplicatesPolicy", this.duplicatesPolicy.ToString());
-			if (!String.IsNullOrWhiteSpace(this.description))
+			if (!String.IsNullOrEmpty(this.description))
 				xmlWriter.WriteElementString("description", this.description);
 			xmlWriter.WriteStartElement("phaseTypes");
 			foreach (var phaseType in this.phaseTypes)

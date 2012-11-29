@@ -49,13 +49,13 @@ namespace SimManning
 		}
 
 		#region IO
-		protected internal virtual void LoadFromXml(XElement element)
+		public virtual void LoadFromXml(XElement element)
 		{
 			var elem = element.Element("description");
 			this.description = elem == null ? String.Empty : elem.Value;
 		}
 
-		protected internal virtual void SaveToXml(XmlWriter xmlWriter)
+		public virtual void SaveToXml(XmlWriter xmlWriter)
 		{
 			var needsDeclaration = xmlWriter.WriteState == WriteState.Start;
 			xmlWriter.WriteStartElement("Workplace");

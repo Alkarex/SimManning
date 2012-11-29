@@ -6,19 +6,18 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Command line for the DTU SimManning library for simulation of manning with an example of basic domain")]
+[assembly: AssemblyTitle("File IO (desktop) extensions for DTU SimManning library for simulation of manning."
+#if (DEBUG)
+ + " (DEBUG version)"
+#endif
+)]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Technical University of Denmark")]
-[assembly: AssemblyProduct("SimManning.Domain.Basic.CLI")]
+[assembly: AssemblyProduct("SimManning.IO")]
 [assembly: AssemblyCopyright("Copyright © DTU 2009-2012, Alexandre Alapetite")]
-[assembly: AssemblyTrademark("SimManning")]
+[assembly: AssemblyTrademark("SimManning.IO")]
 [assembly: AssemblyCulture("")]
-
-// Setting ComVisible to false makes the types in this assembly not visible 
-// to COM components.  If you need to access a type in this assembly from 
-// COM, set the ComVisible attribute to true on that type.
-[assembly: ComVisible(false)]
 
 //Common Language Specification
 //http://msdn.microsoft.com/library/ms182156.aspx

@@ -170,13 +170,20 @@ namespace SimManning
 					phase.Tasks.Remove(autoTask.Id);
 		}
 
+		/// <summary>
+		/// Prepare the dataset for being used for simulation.
+		/// </summary>
 		public virtual void PrepareForFirstSimulation()
 		{
 			var num = 1;
 			foreach (var phase in this.scenario.Phases)
 				phase.Id = num++;	//Assign a different ID sequentially to all the different phases used
+			num = 1;
 			foreach (var task in this.taskDictionaryExpanded.Values)
+			{
+				task.InternalId = num++;
 				task.simulationCurrentQualifications.Clear();
+			}
 			foreach (var crewman in this.crew.Values)
 				foreach (var qualification in crewman.Qualifications.Where(q => q.Value > 0))	//Cache some qualification information
 				{
@@ -184,8 +191,8 @@ namespace SimManning
 					if (this.TaskDictionaryExpanded.TryGetValue(qualification.Key, out task))
 						task.simulationCurrentQualifications.Add(crewman, qualification.Value);
 					else Debug.Assert(this.taskDictionary.TryGetValue(qualification.Key, out task),
-						"✗ Invalid qualification reference!", "✗ Task qualification reference problem for task ID {0} and crewman {1}!",
-						qualification.Key, qualification.Value);
+						String.Format("✗ Invalid qualification reference!", "✗ Task qualification reference problem for task ID {0} and crewman {1}!",
+						qualification.Key, qualification.Value));
 				}
 		}
 

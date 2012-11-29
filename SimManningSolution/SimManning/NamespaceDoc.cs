@@ -21,7 +21,7 @@ namespace SimManning
 	/// <description><a href="http://alexandre.alapetite.fr/cv/">alexandre.alapetite.fr</a></description>
 	/// </item>
 	/// </list>
-	/// Compatible with .NET 4.0 Client Profile, .NET 4.5, Metro, Silverlight 4, Mono 2.8+
+	/// Compatible with .NET 4.0 Client Profile, .NET 4.5, Windows 8 (Metro), Silverlight 4+, Windows Phone 7+, Xbox 360, Mono 2.8+.
 	/// </summary>
 	[CompilerGenerated]
 	internal class NamespaceDoc
