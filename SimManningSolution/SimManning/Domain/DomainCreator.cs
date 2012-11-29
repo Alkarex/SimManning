@@ -65,7 +65,7 @@ namespace SimManning
 		/// </summary>
 		/// <param name="element">An XML element representing a complete simulation dataSet</param>
 		/// <returns>The new simulation dataSet</returns>
-		protected internal virtual SimulationDataSet LoadSimulationDataSetFromSingleXml(XElement element)
+		public virtual SimulationDataSet LoadSimulationDataSetFromSingleXml(XElement element)
 		{
 			var myElement = element.Element("Workplace");
 			if (myElement == null) return null;
@@ -95,7 +95,7 @@ namespace SimManning
 			var xmlAssertions = element.Element("Assertions");
 			if (xmlAssertions != null)
 				foreach (var xmlAssertion in xmlAssertions.Elements("Assertion"))
-					if (!String.IsNullOrWhiteSpace(xmlAssertion.Value))
+					if (!String.IsNullOrEmpty(xmlAssertion.Value))
 						simulationDataSet.Assertions.Add(xmlAssertion.Value);
 			return simulationDataSet;
 		}

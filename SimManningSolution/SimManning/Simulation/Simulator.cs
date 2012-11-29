@@ -3,10 +3,11 @@
 #define REVERSE_QUEUE	//Event queue using a reversed list (better than normal list, but not as good as binary heap)
 #endif
 
+//#define VERBOSE_DEBUG	//Additional information in DEBUG mode
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.Contracts;
 using System.Globalization;
 using System.Linq;
 using System.Text;
@@ -29,9 +30,9 @@ namespace SimManning.Simulation
 		}
 
 		/// <summary>
-		/// Used for NoDuplicate and Slaves. Only one task at a time will be active.
+		/// Used for NoDuplicate and Slaves.
 		/// </summary>
-		readonly HashSet<int> taskIdsActive = new HashSet<int>();	//TODO: Debug (Only one task at a time will be active). Should be changed to a counter
+		int[] taskIdsActive;
 
 		int nbObligatoryTasksActive;
 
@@ -63,24 +64,18 @@ namespace SimManning.Simulation
 		public event ErrorMessageEventHandler OnErrorMessage;
 		#endregion
 
-		[ContractInvariantMethod]
-		void ObjectInvariant()
-		{
-			Contract.Invariant(nbObligatoryTasksActive >= 0);
-			Contract.Invariant(nbEventInsertions >= 0);
-		}
-
 		public Simulator(SimulationDataSet simulationDataSet)
 		{
 			this.simulationDataSet = simulationDataSet;
 			this.simulationDataSet.PrepareForFirstSimulation();
+			this.taskIdsActive = new int[this.simulationDataSet.TaskDictionaryExpanded.Count + 1];
 			this.OnErrorMessage += (text) => Debug.WriteLine(text);
 		}
 
-		public static Version Version
+		/*public static Version Version
 		{
-			get { return typeof(Simulator).GetTypeInfo().Assembly.GetName().Version; }	//.NET 4.5. See ExtensionsLegacy.cs for compatibility with .NET 4.0.
-		}
+			get { return typeof(Simulator).Assembly.GetName().Version; }	//Difficult to target multiple .NET versions such as .NET 4.0, .NET 4.5, and Windows 8
+		}*/
 
 		void PrepareForNextReplication()
 		{
@@ -91,10 +86,10 @@ namespace SimManning.Simulation
 			this.simulationDataSet.PrepareForNextReplication();
 			{
 				var myMessage = this.simulationDataSet.ErrorMessage;
-				if ((!String.IsNullOrWhiteSpace(myMessage)) && (this.OnErrorMessage != null))
+				if ((!String.IsNullOrEmpty(myMessage)) && (this.OnErrorMessage != null))
 					this.OnErrorMessage(myMessage);
 				myMessage = this.simulationDataSet.WarningMessage;
-				if ((!String.IsNullOrWhiteSpace(myMessage)) && (this.OnErrorMessage != null))
+				if ((!String.IsNullOrEmpty(myMessage)) && (this.OnErrorMessage != null))
 					this.OnErrorMessage(myMessage);
 			}
 			foreach (var task in this.simulationDataSet.TaskDictionaryExpanded.Values.Where(t => t.Enabled))
@@ -126,7 +121,6 @@ namespace SimManning.Simulation
 
 		public bool Run(SimulationTime timeOrigin, DomainDispatcher domainDispatcher, Random aRand = null)
 		{
-			Contract.Requires(domainDispatcher != null);
 			Debug.WriteLine("{0}======== {1} ========", Environment.NewLine, this.simulationDataSet);
 			this.simulationTime = timeOrigin;
 			var timeLimit = timeOrigin;
@@ -148,6 +142,7 @@ namespace SimManning.Simulation
 				if (phase.Duration.XValue.Positive)
 				{//Duration of the phase, represented by an obligatory task of the same length.
 					var durationTask = this.simulationDataSet.TaskDictionaryExpanded.CreateTask(-phase.Id);
+					durationTask.InternalId = 0;
 					durationTask.TaskType = (int)StandardTaskType.InternalWait;
 					durationTask.Name = String.Format(CultureInfo.InvariantCulture, "!Duration task for phase {0} ({1})", phase.Id, phase.Name);
 					durationTask.TaskInterruptionPolicy = TaskInterruptionPolicies.DropWithError;
@@ -164,9 +159,10 @@ namespace SimManning.Simulation
 					durationTask.PrepareForNextOccurrence();
 					//if (phase.Tasks.ContainsKey(durationTask.Id)) phase.Tasks.Remove(durationTask.Id);
 					//phase.Tasks.Add(durationTask.Id, durationTask);
+					this.taskIdsActive[durationTask.InternalId]++;
 					AddEvent(new SimulationTaskEvent(durationTask, this.simulationTime + (phase.Duration.XValue > Phase.ArbitraryMaxDuration ? Phase.ArbitraryMaxDuration : phase.Duration.XValue), SimulationTaskEvent.SubtypeType.TaskEnds));
 				}
-				foreach (var task in this.simulationDataSet.TaskDictionaryExpanded.Values.AsParallel().Where(t => t.IsPhaseDependent && (!t.AutoExpandToAllCrewmen) &&
+				foreach (var task in this.simulationDataSet.TaskDictionaryExpanded.Values.Where(t => t.IsPhaseDependent && (!t.AutoExpandToAllCrewmen) &&	//Candidate for .AsParallel()
 					t.Enabled && t.PhaseTypes.Any(pt => phase.PhaseType.IsSubCodeOf(pt))))
 					EnqueueTaskArrival(this.simulationDataSet.TaskDictionaryExpanded.CreateTask(task, TaskLinkingType.Linked), this.simulationTime, original: true);	//Enqueue tasks for phases of this type
 				foreach (var task in phase.Tasks.Values.Where(t => t.IsPhaseDependent && (!t.AutoExpandToAllCrewmen) && t.Enabled))
@@ -190,7 +186,7 @@ namespace SimManning.Simulation
 			return true;
 		}
 
-		static void PhaseTransitionOfActiveTask(SimulationTask task, SimulationTime time, Phase previousPhase, Phase phase, SimulationTaskEvent myEvent, ref bool killed, ref bool error)
+		void DoPhaseTransitionOfActiveTask(SimulationTask task, SimulationTime time, Phase previousPhase, Phase phase, SimulationTaskEvent myEvent, ref bool killed, ref bool error)
 		{
 			if (myEvent.subtype == SimulationTaskEvent.SubtypeType.TaskAwakes)
 			{//Resume tasks coming from e.g. ResumeAndComplete that are hibernated
@@ -215,6 +211,8 @@ namespace SimManning.Simulation
 								task.SleepUntilNow(time);	//For correct ProcessUntilNow of when dealing with TaskHibernated event
 							myEvent.subtype = SimulationTaskEvent.SubtypeType.TaskHibernated;
 							myEvent.EventTime = time;
+							if (myEvent.Task.SlaveTasks.Count > 0)
+								StopSlaves(myEvent, sort: false);	//"sort: false" because we need to maintain order
 						}
 					}
 					break;
@@ -291,7 +289,7 @@ namespace SimManning.Simulation
 						}
 					}
 				}
-				else PhaseTransitionOfActiveTask(task, this.simulationTime, previousPhase, phase, myEvent, ref killed, ref error);
+				else DoPhaseTransitionOfActiveTask(task, this.simulationTime, previousPhase, phase, myEvent, ref killed, ref error);
 				if (killed || (phase == null))
 				{
 					if (error)
@@ -326,8 +324,8 @@ namespace SimManning.Simulation
 					if (myEvent.subtype == SimulationTaskEvent.SubtypeType.TaskWaitingParallel)
 						this.parallelQueue.Add(myEvent.Task.Id, myEvent);
 					else eventsToKeep.Add(myEvent);
-					if (myEvent.subtype != SimulationTaskEvent.SubtypeType.TaskPlanned)
-						this.taskIdsActive.Add(myEvent.Task.Id);
+					if ((myEvent.subtype & (SimulationTaskEvent.SubtypeType.TaskPlanned | SimulationTaskEvent.SubtypeType.TaskAwakes)) != myEvent.subtype)
+						this.taskIdsActive[myEvent.Task.InternalId]++;
 				}
 			}
 			this.asapQueue.Clear();
@@ -340,41 +338,6 @@ namespace SimManning.Simulation
 			if (this.OnPhaseTransitionEnd != null)	//Event
 				this.OnPhaseTransitionEnd(previousPhase, phase, this.simulationTime);
 		}
-
-		/*/// <summary>
-		/// Interrupt parallel tasks during phase transition.
-		/// </summary>
-		void InterruptParallelTasks(SimulationTaskEvent simulationEvent, bool sort = true)
-		{//Cannot use InterruptTasks(task.ParallelTasks.Keys...) instead, as it is modifying the event list
-			var task = simulationEvent.Task;
-			var taskEventsUpdated = new List<SimulationTaskEvent>();
-			foreach (var myTaskId in task.ParallelTasks.Keys)
-				#if (REVERSE_QUEUE)
-				for (var i = this.eventQueue.Count - 1; i >= 0; i--)
-				#else
-				for (var i = 0; i < this.eventQueue.Count; i++)
-				#endif
-				{//Take care only of the first event for a given task ID
-					var mySimulationEvent = this.eventQueue[i];
-					if (task.Id == myTaskId)
-					{//TODO: Only take care of tasks not planned to start/resume?
-						if (mySimulationEvent.EventTime > simulationEvent.EventTime)
-						{
-							mySimulationEvent.EventTime = simulationEvent.EventTime;
-							mySimulationEvent.EventSubtype = SimulationTaskEvent.Subtype.TaskWorkInterrupted;	//TODO: Another type is probably needed
-							if (sort)
-							{
-								this.eventQueue.RemoveAt(i);
-								taskEventsUpdated.Add(mySimulationEvent);
-							}
-						}
-						break;
-					}
-				}
-			if (sort)
-				foreach (var mySimulationEvent in taskEventsUpdated)
-					AddEvent(mySimulationEvent);
-		}*/
 
 		/// <summary>
 		/// Sub-function of <see cref="ConsumeEvent"/>.
@@ -422,6 +385,8 @@ namespace SimManning.Simulation
 						currentTask.RemainingDuration += duplicateEvent.Task.RemainingDuration;
 						goto case TaskDuplicatesPolicy.KillOldDuplicates;
 					case TaskDuplicatesPolicy.KillOldDuplicates:
+						if (duplicateEvent.subtype == SimulationTaskEvent.SubtypeType.TaskPlanned)
+							this.taskIdsActive[duplicateEvent.Task.InternalId]++;	//The counter will be decremented during TaskKilled
 						duplicateEvent.subtype = SimulationTaskEvent.SubtypeType.TaskKilled;
 						duplicateEvent.EventTime = this.simulationTime;
 						ConsumeEvent(duplicateEvent);	//Recursive: kill the task immediatly instead of AddEvent() for performances reasons
@@ -430,6 +395,7 @@ namespace SimManning.Simulation
 					case TaskDuplicatesPolicy.KillNewDuplicates:
 						simulationEvent.subtype = SimulationTaskEvent.SubtypeType.TaskKilled;
 						simulationEvent.EventTime = this.simulationTime;
+						this.taskIdsActive[currentTask.InternalId]++;
 						ConsumeEvent(simulationEvent);	//Recursive: kill the task immediatly instead of AddEvent() for performances reasons
 						if (currentTask.RelativeDate == RelativeDateType.Frequency)
 							ConsumeFrequency(simulationEvent);
@@ -488,7 +454,7 @@ namespace SimManning.Simulation
 			if (currentTask.SlaveTasks.Count > 0)
 				foreach (var slaveTask in currentTask.SlaveTasks.Values.Where(t => t.Enabled))	//Start slaves
 					EnqueueTaskArrival(this.simulationDataSet.TaskDictionaryExpanded.CreateTask(slaveTask, TaskLinkingType.Linked), simulationEvent.EventTime, original: true);
-			this.taskIdsActive.Add(currentTask.Id);	//Do after frequency case
+			this.taskIdsActive[currentTask.InternalId]++;	//Do after frequency case
 			if ((currentTask.ParallelTasks.Count == 0) || ParallelReady(simulationEvent))
 				ResumeTask(simulationEvent);
 		}
@@ -531,7 +497,8 @@ namespace SimManning.Simulation
 			var originalEventTime = simulationEvent.EventTime;
 			currentTask.ProcessUntilNow(originalEventTime, this.simulationPhase);
 			Debug.WriteLine("☑\t{0}\t(remaining: {1})", simulationEvent, currentTask.RemainingDuration);
-			this.taskIdsActive.Remove(currentTask.Id);
+			this.taskIdsActive[currentTask.InternalId]--;
+			Debug.Assert(this.taskIdsActive[currentTask.InternalId] >= 0, "The number of active tasks of a given type cannot be negative!");
 			if (currentTask.PhaseInterruptionPolicy == PhaseInterruptionPolicies.Obligatory)
 				this.nbObligatoryTasksActive--;
 			if (currentTask.SlaveTasks.Count > 0)
@@ -580,8 +547,10 @@ namespace SimManning.Simulation
 
 		void ConsumeEvent(SimulationTaskEvent simulationEvent)
 		{
-			//Debug.WriteLine("\t\t• Consume event: " + simulationEvent.ToString());
-			//Debug.WriteLine(DebugQueuesPrint());	//More debugging information
+			#if (VERBOSE_DEBUG)
+			Debug.WriteLine("\t\t• Consume event: " + simulationEvent.ToString());
+			Debug.WriteLine(DebugQueuesPrint());	//More debugging information
+			#endif
 			var originalEventTime = simulationEvent.EventTime;
 			this.simulationTime = simulationEvent.EventTime;
 			var callTaskDismiss = false;
@@ -589,7 +558,7 @@ namespace SimManning.Simulation
 			switch (simulationEvent.subtype)
 			{
 				case SimulationTaskEvent.SubtypeType.TaskPlanned:
-					if ((currentTask.DuplicatesPolicy != TaskDuplicatesPolicy.KeepDuplicates) && this.taskIdsActive.Contains(currentTask.Id) &&
+					if ((currentTask.DuplicatesPolicy != TaskDuplicatesPolicy.KeepDuplicates) && (this.taskIdsActive[currentTask.InternalId] > 0) &&
 						ConsumeTaskDuplicate(simulationEvent))
 						return;
 					ConsumeTaskPlanned(simulationEvent);
@@ -605,7 +574,8 @@ namespace SimManning.Simulation
 				case SimulationTaskEvent.SubtypeType.TaskHibernated:
 					currentTask.ProcessUntilNow(originalEventTime, this.simulationPhase);
 					Debug.WriteLine("◑\t{0}\t(remaining: {1})", simulationEvent, currentTask.RemainingDuration);
-					this.taskIdsActive.Remove(currentTask.Id);
+					this.taskIdsActive[currentTask.InternalId]--;
+					Debug.Assert(this.taskIdsActive[currentTask.InternalId] >= 0, "The number of active tasks of a given type cannot be negative!");
 					callTaskDismiss = true;
 					simulationEvent.EventTime = SimulationTime.MaxValue;	//Task will be resumed when changing phase
 					simulationEvent.subtype = SimulationTaskEvent.SubtypeType.TaskAwakes;
@@ -622,7 +592,7 @@ namespace SimManning.Simulation
 					AddEvent(simulationEvent);
 					break;
 				case SimulationTaskEvent.SubtypeType.TaskAwakes:
-					this.taskIdsActive.Add(currentTask.Id);
+					this.taskIdsActive[currentTask.InternalId]++;
 					if (currentTask.SlaveTasks.Count > 0)
 						foreach (var slaveTask in currentTask.SlaveTasks.Values.Where(t => t.Enabled))	//Start slaves
 							EnqueueTaskArrival(this.simulationDataSet.TaskDictionaryExpanded.CreateTask(slaveTask, TaskLinkingType.Linked), simulationEvent.EventTime, original: true);
@@ -659,6 +629,7 @@ namespace SimManning.Simulation
 			var task = simulationEvent.Task;
 			//if (task.SlaveTasks.Count > 0)	//Should be tested before function call
 			{
+				var taskId = task.Id;
 				var taskEventsUpdated = new List<SimulationTaskEvent>();
 				#if (BINARY_HEAP)
 				//if (sort) this.eventQueue.Sort();	//TODO: Speed: Try to remove
@@ -666,11 +637,13 @@ namespace SimManning.Simulation
 				for (var i = this.eventQueue.Count - 1; i >= 0; i--)
 				{//The events may be processed in a random order
 					var myEvent = this.eventQueue[i];
-					var myTaskMasters = myEvent.Task.MasterTasks.Keys;
-					if (myTaskMasters.Contains(task.Id) &&	//Slave of the current task
-						(!myTaskMasters.Any(myTaskId => (myTaskId != task.Id) && this.taskIdsActive.Contains(myTaskId))))	//No other active master
+					var myTaskMasters = myEvent.Task.MasterTasks;
+					if (myTaskMasters.ContainsKey(taskId) &&	//Slave of the current task
+						(!myTaskMasters.Values.Any(myTask => (myTask.Id != taskId) && (this.taskIdsActive[myTask.InternalId] > 0))))	//No other active master
 					{
 						myEvent.EventTime = this.simulationTime;
+						if (myEvent.subtype == SimulationTaskEvent.SubtypeType.TaskPlanned)
+							this.taskIdsActive[myEvent.Task.InternalId]++;	//The counter will be decreased during the processing of TaskKilled
 						myEvent.subtype = SimulationTaskEvent.SubtypeType.TaskKilled;
 						if (sort)
 						{
@@ -685,11 +658,13 @@ namespace SimManning.Simulation
 				for (var i = this.asapQueue.Count - 1; i >= 0; i--)	//Do the same for the ASAP queue
 				{//The events may be processed in a random order
 					var myEvent = this.asapQueue[i];
-					var myTaskMasters = myEvent.Task.MasterTasks.Keys;
-					if (myTaskMasters.Contains(task.Id) &&	//Slave of the current task
-						(!myTaskMasters.Any(myTaskId => (myTaskId != task.Id) && this.taskIdsActive.Contains(myTaskId))))	//No other active master
+					var myTaskMasters = myEvent.Task.MasterTasks;
+					if (myTaskMasters.ContainsKey(taskId) &&	//Slave of the current task
+						(!myTaskMasters.Values.Any(myTask => (myTask.Id != taskId) && (this.taskIdsActive[myTask.InternalId] > 0))))	//No other active master
 					{
 						myEvent.EventTime = this.simulationTime;
+						if (myEvent.subtype == SimulationTaskEvent.SubtypeType.TaskPlanned)
+							this.taskIdsActive[myEvent.Task.InternalId]++;	//The counter will be decreased during the processing of TaskKilled
 						myEvent.subtype = SimulationTaskEvent.SubtypeType.TaskKilled;
 						this.asapQueue.RemoveAt(i);	//Watch out for the index change!
 						AddEvent(myEvent);
@@ -731,7 +706,6 @@ namespace SimManning.Simulation
 		/// <returns>A start time for the task</returns>
 		static SimulationTime FindStartTime(SimulationTask task, SimulationTime eventTime, SimulationTime nextEventTime)
 		{
-			Contract.Requires(task != null);
 		FindStartTime:
 			switch (task.RelativeTime)
 			{
@@ -772,6 +746,7 @@ namespace SimManning.Simulation
 			task.PrepareForNextOccurrence();
 			if (task.NumberOfCrewmenNeeded > task.simulationCurrentQualifications.Count)
 			{//Invalid assignment
+				this.taskIdsActive[task.InternalId]++;	//Counter will be decremented during TaskKilled
 				AddEvent(new SimulationTaskEvent(task, eventTime, SimulationTaskEvent.SubtypeType.TaskKilled));
 				if (this.OnTaskError != null) this.OnTaskError(this.simulationPhase, task);	//Event
 				return;

@@ -1,6 +1,7 @@
 ﻿#define NO_STRINGS	//To use the same algorithms than systems that cannot use string. Faster anyway without strings.
 
 using System;
+using System.Collections.Generic;
 using System.Text;
 
 namespace SimManning
@@ -99,5 +100,64 @@ namespace SimManning
 		{
 			return code.IsSubCodeOf((int)code2);
 		}
+
+		/// <summary>
+		/// Clear an array by setting all its values to the default value associated to its type (e.g. 0 for an Int32).
+		/// </summary>
+		/// <typeparam name="T">The type of the cells of the array</typeparam>
+		/// <param name="array">An array to clear</param>
+		public static void Clear<T>(this T[] array)
+		{
+			if (array == null) return;
+			for (var i = array.Length - 1; i >= 0; i--)
+				array[i] = default(T);
+		}
+
+		#region .NET Core: Manual implementations of routines existing in .NET 4.0 but not in .NET 4.5 Core (Metro) and Silverlight.
+		/// <summary>
+		/// Searches for an element that matches the conditions defined by the specified predicate, and returns the zero-based index of the first occurrence within the entire List.
+		/// </summary>
+		/// <typeparam name="T">The type of item contained in the list.</typeparam>
+		/// <param name="list">The list to search.</param>
+		/// <param name="match">The Predicate delegate that defines the conditions of the element to search for</param>
+		/// <returns>The zero-based index of the first occurrence of an element that matches the conditions defined by match, if found; otherwise, –1.</returns>
+		public static int FindIndex<T>(this IList<T> list, Predicate<T> match)
+		{
+			var maxI = list.Count;
+			for (var i = 0; i < maxI; i++)
+				if (match(list[i]))
+					return i;
+			return -1;
+		}
+
+		/// <summary>
+		/// Searches for an element that matches the conditions defined by the specified predicate, and returns the zero-based index of the last occurrence within the entire List.
+		/// </summary>
+		/// <typeparam name="T">The type of item contained in the list.</typeparam>
+		/// <param name="list">The list to search.</param>
+		/// <param name="match">The Predicate delegate that defines the conditions of the element to search for</param>
+		/// <returns>The zero-based index of the last occurrence of an element that matches the conditions defined by match, if found; otherwise, –1.</returns>
+		public static int FindLastIndex<T>(this IList<T> list, Predicate<T> match)
+		{
+			for (var i = list.Count - 1; i >= 0; i--)
+				if (match(list[i]))
+					return i;
+			return -1;
+		}
+		#endregion
+
+		#region Fake PLinq for Silverlight
+		/*//Allow in Silverlight the syntax used to enable parallelization of a query.
+		//However, in Silverlight, there is no parallelization and thus no gain of using this function.
+		public static IList<TSource> AsParallel<TSource>(this IList<TSource> source)
+		{
+			return source;
+		}
+
+		public static Dictionary<TKey, TValue>.ValueCollection AsParallel<TKey, TValue>(this Dictionary<TKey, TValue>.ValueCollection source)
+		{
+			return source;
+		}*/
+		#endregion
 	}
 }

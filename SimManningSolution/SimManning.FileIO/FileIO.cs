@@ -7,10 +7,10 @@ namespace SimManning.IO
 {
 	/// <summary>
 	/// Extensions for XML IO on the file system.
-	/// Separated because it uses some APIs not available in Metro and Silverlight.
+	/// Separated because it uses some APIs not available in Windows 8 (Metro) and Silverlight.
 	/// This class can safely be removed in projects not supporting <see cref="System.IO"/>.
 	/// </summary>
-	public static class XmlFileIO
+	public static class FileIO
 	{
 		public const string WorkplaceFileName = "Workplace.xml";	//TODO: Fusion into tasklist
 		public const string TasksFileName = "Tasks.xml";
@@ -125,15 +125,15 @@ namespace SimManning.IO
 			path = path.TrimEnd('/', '\\') + Path.DirectorySeparatorChar;
 			if (!Directory.Exists(path)) throw new DirectoryNotFoundException("Data path not found! [" + path + ']');
 			var workplace = domainCreator.CreateWorkplace(workplaceName);
-			workplace.LoadFromXml(path + XmlFileIO.WorkplaceFileName);
+			workplace.LoadFromXml(path + FileIO.WorkplaceFileName);
 			var taskList = domainCreator.CreateTaskDictionary();
-			taskList.LoadFromXml(path + XmlFileIO.TasksFileName);
+			taskList.LoadFromXml(path + FileIO.TasksFileName);
 			var crew = domainCreator.CreateCrew(crewName, taskList);
 			crew.LoadFromXml(path + crewName + CrewFileNameExtension);
 			var scenario = domainCreator.CreateScenario(scenarioName,
 				phaseRefName =>
 				{
-					var myPath = path + phaseRefName + XmlFileIO.PhaseFileNameExtension;
+					var myPath = path + phaseRefName + FileIO.PhaseFileNameExtension;
 					if (File.Exists(myPath))
 					{
 						var phase = domainCreator.CreatePhase(phaseRefName, taskList);
@@ -142,7 +142,7 @@ namespace SimManning.IO
 					}
 					else return null;
 				});
-			scenario.LoadFromXml(path + scenarioName + XmlFileIO.ScenarioFileNameExtension);
+			scenario.LoadFromXml(path + scenarioName + FileIO.ScenarioFileNameExtension);
 			return domainCreator.CreateSimulationDataSet(workplace, taskList, scenario, crew);
 		}
 
@@ -159,12 +159,12 @@ namespace SimManning.IO
 		public static void SaveToXml(this SimulationDataSet simulationDataSet, string path)
 		{
 			if (!Directory.Exists(path)) Directory.CreateDirectory(path);
-			simulationDataSet.Workplace.SaveToXml(path + XmlFileIO.WorkplaceFileName);
-			simulationDataSet.TaskDictionary.SaveToXml(path + XmlFileIO.TasksFileName);
+			simulationDataSet.Workplace.SaveToXml(path + FileIO.WorkplaceFileName);
+			simulationDataSet.TaskDictionary.SaveToXml(path + FileIO.TasksFileName);
 			simulationDataSet.Crew.SaveToXml(path + simulationDataSet.Crew.Name + CrewFileNameExtension);
 			foreach (var phase in simulationDataSet.Scenario.Phases)
-				phase.SaveToXml(path + phase.Name + XmlFileIO.PhaseFileNameExtension);
-			simulationDataSet.Scenario.SaveToXml(path + simulationDataSet.Scenario.Name + XmlFileIO.ScenarioFileNameExtension);
+				phase.SaveToXml(path + phase.Name + FileIO.PhaseFileNameExtension);
+			simulationDataSet.Scenario.SaveToXml(path + simulationDataSet.Scenario.Name + FileIO.ScenarioFileNameExtension);
 		}
 
 		public static void SaveToSingleXml(this SimulationDataSet simulationDataSet, string fileName)

@@ -24,7 +24,7 @@ namespace SimManning.IO
 		/// </summary>
 		public static string XmlDomainVersion = "1.3";
 
-		internal static readonly XmlReaderSettings SimManningXmlReaderSettings = new XmlReaderSettings
+		public static readonly XmlReaderSettings SimManningXmlReaderSettings = new XmlReaderSettings
 		{
 			CloseInput = true,
 			ConformanceLevel = ConformanceLevel.Document,
@@ -33,33 +33,13 @@ namespace SimManning.IO
 			IgnoreWhitespace = true
 		};
 
-		internal static readonly XmlWriterSettings SimManningXmlWriterSettings = new XmlWriterSettings
+		public static readonly XmlWriterSettings SimManningXmlWriterSettings = new XmlWriterSettings
 		{
 			CloseOutput = true,
 			Indent = true,
 			IndentChars = "\t",
 			OmitXmlDeclaration = true
 		};
-
-		/// <summary>
-		/// Load a list of type codes.
-		/// </summary>
-		/// <param name="typesPath">Path to the XML file containing the types declaration</param>
-		/// <param name="typeName">Type to be loaded</param>
-		/// <returns>A collection of code=>description (e.g. 31=>"Cargo handling")</returns>
-		public static Dictionary<int, string> LoadTypesList(string typesPath, string typeName)
-		{//TODO: Cache the result in the Task and Phase objects?
-			var dictionary = new Dictionary<int, string>();
-			var xmlTypes = XDocument.Load(typesPath);	//TODO: Catch errors
-			var myTypes = from types in xmlTypes.Root.Elements("Types")
-						  where types.Attribute("id").Value == typeName
-						  select types;
-			var typeList = from myType in myTypes.Descendants("Type")	//Can be written in one expression?
-						   select myType;
-			foreach (var myType in typeList)
-				dictionary.Add(myType.Attribute("code").Value.ParseInteger(), myType.Attribute("name").Value);
-			return dictionary;
-		}
 
 		#region Parse extensions
 		public static TimeUnit ParseTimeUnit(this XAttribute attribute)

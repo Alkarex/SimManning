@@ -222,7 +222,7 @@ namespace SimManning
 		}
 
 		#region IO
-		protected internal virtual void LoadFromXml(XElement element)
+		public virtual void LoadFromXml(XElement element)
 		{//TODO: Catch errors
 			var taskRelationsTemp = new List<TaskDictionary.TaskRelationTemp>();
 			foreach (var xmlTask in element.Elements("Task"))
@@ -240,7 +240,7 @@ namespace SimManning
 			taskRelationsTemp.Clear();
 		}
 
-		protected internal virtual void SaveToXml(XmlWriter xmlWriter)
+		public virtual void SaveToXml(XmlWriter xmlWriter)
 		{
 			xmlWriter.WriteStartElement("Tasks");
 			if (xmlWriter.WriteState == WriteState.Start)

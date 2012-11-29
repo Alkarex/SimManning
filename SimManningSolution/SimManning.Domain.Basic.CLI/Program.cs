@@ -32,13 +32,13 @@ Usage 2: <nbReplications> <Single-XML dataSet on standard input>";
 				nbReplications = args.Length > 0 ? Int32.Parse(args[0]) : 1;
 				if (args.Length <= 1)
 				{//Usage 1
-					Console.WriteLine("Load data from standard input...\t({0})",
+					Console.WriteLine("Load data from standard input…\t({0})",
 						DateTime.Now.ToString("o", CultureInfo.InvariantCulture));
 					simulationDataSet = basicCreator.LoadSimulationDataSetFromSingleXmlString(Console.In);
 				}
 				else if (args.Length == 5)
 				{//Usage 2
-					Console.WriteLine("Load data from files...\t({0})",
+					Console.WriteLine("Load data from files…\t({0})",
 						DateTime.Now.ToString("o", CultureInfo.InvariantCulture));
 					simulationDataSet = basicCreator.LoadSimulationDataSetFromXml(path: args[1], workplaceName: args[2],
 						scenarioName: args[3], crewName: args[4]);
@@ -55,7 +55,7 @@ Usage 2: <nbReplications> <Single-XML dataSet on standard input>";
 			#endregion
 
 			#region Prepare simulation
-			Console.WriteLine("Prepare simulation...\t({0})", DateTime.Now.ToString("o", CultureInfo.InvariantCulture));
+			Console.WriteLine("Prepare simulation…\t({0})", DateTime.Now.ToString("o", CultureInfo.InvariantCulture));
 			
 			//Prepare the simulation input data:
 			//For some tasks, automatically create one task instance per crewman.
@@ -68,7 +68,7 @@ Usage 2: <nbReplications> <Single-XML dataSet on standard input>";
 			{//Event when a task is assigned to a crewman (task is null when ideling)
 				Console.WriteLine("{0}\t{1}\t{2}\t{3}", simulationTime.ToStringUI(), phase, crewman,
 					task == null ? "-" : task.ToString());
-				//Room to do something more with this event...
+				//Room to do something more with this event…
 			};
 
 			//The Simulator class is the simulation engine.
@@ -78,8 +78,8 @@ Usage 2: <nbReplications> <Single-XML dataSet on standard input>";
 			simulator.OnPhaseTransitionBegin += (phase, nextPhase, currentSimulationTime) =>
 			{//Event when starting a transition to the next phase of the scenario
 				if (nextPhase == null) Console.WriteLine("{0}\t\tEnd of scenario.", currentSimulationTime.ToStringUI());
-				else Console.WriteLine("{0}\t{1}...", currentSimulationTime.ToStringUI(), nextPhase);
-				//Room to do something more with this event...
+				else Console.WriteLine("{0}\t{1}…", currentSimulationTime.ToStringUI(), nextPhase);
+				//Room to do something more with this event…
 			};
 			#endregion
 
@@ -87,7 +87,7 @@ Usage 2: <nbReplications> <Single-XML dataSet on standard input>";
 			var stopwatch = Stopwatch.StartNew();
 			for (var n = 1; n <= nbReplications; n++)
 			{
-				Console.WriteLine("Start simulation #{0}:\t{1}, {2}, {3}...\t({4})",
+				Console.WriteLine("Start simulation #{0}:\t{1}, {2}, {3}…\t({4})",
 					nbReplications, simulationDataSet.Workplace.Name, simulationDataSet.Crew.Name,
 					simulationDataSet.Scenario.Name, DateTime.Now.ToString("o", CultureInfo.InvariantCulture));
 				if (!simulator.Run(timeOrigin: SimulationTime.Zero, domainDispatcher: dispatcher))
