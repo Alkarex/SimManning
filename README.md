@@ -13,3 +13,6 @@ Non-binding summary (read the [full license](license.md)):
 ## Contact
 * [DTU-MAN-PSM](http://www.man.dtu.dk/english) (A research group of DTU, the Technical University of Denmark)
 * [Alexandre Alapetite](https://alexandre.alapetite.fr/cv/)
+
+## Note
+The original address of this project was https://simmanning.codeplex.com/
