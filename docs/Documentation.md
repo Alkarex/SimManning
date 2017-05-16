@@ -16,18 +16,18 @@ The source-code is written with performance and maintainability in mind. The glo
 This project is intended to be used by software engineers / programmers seeking to implement a new model of human activity during scenarios possibly involving several phases, in order to become a tool for operation management like helping decisions regarding staffing / manning.
 
 ### How to get started
-# Run the demo program (SimManning.Domain.Basic.CLI) and play with the XML input data.
-# See the the _Basic_ domain example in the source code: SimManningSolution/SimManning/Domain/Basic.
+1. Run the demo program (SimManning.Domain.Basic.CLI) and play with the XML input data.
+2. See the the _Basic_ domain example in the source code: SimManningSolution/SimManning/Domain/Basic.
 	* Implementers will need to do something very similar for their own domain implementation.
-# Look at the [class diagram](Documentation_SimManning-ClassDiagram-v1.3.png).
-# Browse the [API documentation](Documentation_SimManningDocumentation-v1.3.chm) (CHM format, but can be compiled to other formats).
+3. Look at the [class diagram](Documentation_SimManning-ClassDiagram-v1.3.png).
+4. Browse the [API documentation](Documentation_SimManningDocumentation-v1.3.chm) (CHM format, but can be compiled to other formats).
 	* (If you download this documentation with Internet Explorer on Windows, you may have to right-click the file and chose "unblock" before being able to read it)
 
 ### Example of input data
 Most of the simulation is data-driven with very little hard-coded in the discrete-event simulation engine.
 The input data can be provided to the simulation library as XML, either as once single document (as exemplified below), or several files, which are useful when working with combinations of several crews and scenarios. Implementers have the possibility to use their own data sources, and/or to override the XML input/output to add custom fields.
 
-{code:XML}
+```xml
 <DataSet domain="BasicDomain" version="1.3">
  <Workplace name="Basic example">
   <description>A basic generic example with a 2-people crew and 4 tasks with 2 in parallel.</description>
@@ -97,12 +97,12 @@ The input data can be provided to the simulation library as XML, either as once 
   </CrewMember>
  </Crew>
 </DataSet>
-{code:XML}
+```
 
 ### Example of program using the library
 A fully-working console application is provided using the above library with the _Basic_ domain. A simpler version is shown here:
 
-{code:c#}
+```cs
 using System;
 using System.Text;
 using SimManning.Simulation;
@@ -171,12 +171,12 @@ namespace SimManning.Domain.Basic
     }
   }
 }
-{code:c#}
+```
 
 ### Basic output
 Here is the console output of the above example program running the example XML data-set:
 
-{code:other}
+```sh
 >SimManning.Domain.Default.CLI.exe < "Basic example.dataset.xml"
 Load XML simulation data from standard input…
 Start simulation
@@ -204,4 +204,4 @@ Start simulation
 ==== Example of statistics: cumulated work time ====
 Crewman “CM01”: 12:00:00
 Crewman “CM02”: 10:00:00
-{code:other}
+```
